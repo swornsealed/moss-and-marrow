@@ -4,7 +4,7 @@
     {
       "submission_id": "clarity-row2",
       "scheduled_for": "2026-07-19T12:20:31.481963+00:00",
-      "status": "error",
+      "status": "sent",
       "customer_email": "addictedyz450f@gmail.com",
       "customer_name": "Craig",
       "order_number": "TEST-FS-CLARITY",
@@ -28,9 +28,11 @@
         ],
         "name_number": 11
       },
-      "attempts": 1,
-      "error": "(535, b'5.7.8 Username and Password not accepted. For more information, go to\\n5.7.8  https://support.google.com/mail/?p=BadCredentials 5a478bee46e88-3142a1bb77csm29161236eec.18 - gsmtp')"
+      "attempts": 2,
+      "error": "(535, b'5.7.8 Username and Password not accepted. For more information, go to\\n5.7.8  https://support.google.com/mail/?p=BadCredentials 5a478bee46e88-3142a1bb77csm29161236eec.18 - gsmtp')",
+      "sent_at": "2026-07-19T06:14:15.882360-07:00"
     }
   ],
-  "redeemed_orders": []
+  "redeemed_orders": [],
+  "etsy_down_alerted_at": "2026-07-19T13:14:13.034813+00:00"
 }

@@ -75,13 +75,11 @@ TIER_DELAYS = {
 # Number of seasonal drops in a Turning Year subscription (the eight sabbats).
 TURNING_YEAR_DROPS = 8
 
-# Deliverable sets. Moss & Marrow launches text-only: no record image generator
-# exists yet, no audio voice is set up, and no natal tier exists at all.
-# Add tiers to these sets only when the corresponding deliverable is built.
-TIERS_WITH_SPREAD_IMAGE = set()   # future: a "record of the land" keepsake image
-TIERS_WITH_AUDIO        = set()   # future: {"The Whole Ground"} with a NEW ElevenLabs voice
-TIERS_WITH_RITUAL       = set()   # future: an outdoor observance for The Whole Ground
-TIERS_WITH_NATAL        = set()   # never: Moss & Marrow casts no charts
+# Deliverable sets. Add tiers only when the corresponding deliverable is built.
+TIERS_WITH_SPREAD_IMAGE = set()                    # future: a "record of the land" keepsake image
+TIERS_WITH_AUDIO        = {"The Whole Ground"}     # Willow's spoken note (own ElevenLabs voice)
+TIERS_WITH_RITUAL       = {"The Whole Ground"}     # the outdoor observance closer
+TIERS_WITH_NATAL        = set()                    # never: Moss & Marrow casts no charts
 
 # ─── GOOGLE SHEETS FORM CONFIGURATION ──────────────────────────────────────────
 # One Sheet tab per reading type. The branded HTML intake form (GitHub Pages)
@@ -1690,8 +1688,9 @@ thought to ask, read above ground and below it.
 
 Your reading will arrive by email within 4 to 8 hours, during my working \
 hours. I will carry your question out and work it through season, element, \
-and sign on the living ground, and what they say comes to you as a full \
-written reading you keep.
+and sign on the living ground. It comes to you as a full written reading \
+you keep, together with a short spoken note, recorded the moment I come in \
+from your reading, before I sit down to write.
 
 If you would like to hold a small moment of your own while I work, you are \
 welcome to. There is no set time for this, do it whenever feels right before \

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moss &amp; Marrow Reading Intake</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --forest:#081710; --forest2:#0c2415; --panel:rgba(18,48,25,.4);
+  --leaf:#8fb883; --leaf-hi:#c8e2b9; --moss:#4a6b48;
+  --peach:#ffb98f; --peach-hi:#ffe3cb; --peach-dim:#d68f63;
+  --cream:#f8f6ef; --cream-dim:#cfd4bf; --cream-faint:#97a087;
+  --clay:#c5643c; --rule:rgba(143,184,131,.22); --field-line:rgba(143,184,131,.3);
+  --serif:'Cormorant Garamond',Georgia,serif; --sans:'Montserrat',system-ui,sans-serif;
+}
+html { scroll-behavior: smooth; }
+body {
+  background: radial-gradient(120% 80% at 50% -10%, #14301f 0%, var(--forest) 55%) fixed, var(--forest);
+  color: var(--cream); font-family: var(--sans); font-weight: 400; font-size: 15px;
+  min-height: 100vh; display: flex; flex-direction: column;
+}
+#motes { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.header, main, footer { position: relative; z-index: 1; }
+
+/* header */
+.header { background: transparent; padding: 52px 24px 34px; text-align: center; border-bottom: 1px solid var(--rule); }
+.leaf-row { font-family:'Segoe UI Symbol',var(--serif); font-size: 15px; color: var(--leaf); letter-spacing: 9px; margin-bottom: 20px; }
+.shop-name { font-family: var(--sans); font-weight: 600; font-size: 12px; letter-spacing: 6px; text-transform: uppercase; color: var(--peach); margin-bottom: 8px; }
+.reader-line { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--leaf); margin-bottom: 24px; }
+.header-rule { border: none; border-top: 1px solid var(--rule); margin: 0 auto 22px; max-width: 220px; }
+.reading-title { font-family: var(--serif); font-style: italic; font-size: 30px; color: var(--peach-hi); line-height: 1.35; margin-bottom: 8px; }
+.reading-subtitle { font-size: 11px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--cream-faint); }
+
+/* main */
+main { flex: 1; max-width: 600px; width: 100%; margin: 0 auto; padding: 44px 24px 70px; }
+.intro { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--cream-dim); line-height: 1.85; margin-bottom: 30px; }
+
+/* privacy seal */
+.privacy {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+  padding: 20px 24px; margin-bottom: 40px; display: flex; gap: 16px; align-items: flex-start;
+}
+.privacy .lock { color: var(--peach-hi); font-size: 18px; line-height: 1.5; }
+.privacy p { font-family: var(--serif); font-size: 15.5px; font-style: italic; color: var(--cream-dim); line-height: 1.7; }
+.privacy b { color: var(--cream); font-weight: 600; font-style: normal; }
+
+/* sections */
+.section-label { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 3.5px; text-transform: uppercase; color: var(--leaf); margin: 40px 0 24px; }
+.section-label:first-of-type { margin-top: 0; }
+hr.divider { border: none; border-top: 1px solid var(--rule); margin: 40px 0; }
+
+/* fields */
+.field { margin-bottom: 30px; }
+.field label { display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--cream); margin-bottom: 10px; }
+.field label .opt { color: var(--peach); font-size: 10px; letter-spacing: .5px; margin-left: 6px; text-transform: none; font-style: italic; font-weight: 400; }
+.field input[type="text"], .field input[type="email"], .field input[type="date"],
+.field textarea, .field select {
+  width: 100%; background: rgba(18,48,25,.35); border: 1px solid var(--field-line); border-radius: 4px;
+  color: var(--cream); font-family: var(--serif); font-size: 18px; padding: 13px 15px;
+  outline: none; transition: border-color .3s, box-shadow .3s, background .3s;
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+}
+.field input[type="date"] { color-scheme: dark; font-size: 16px; }
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--peach); background: rgba(18,48,25,.6);
+  box-shadow: 0 0 0 1px rgba(255,185,143,.25), 0 0 24px -8px rgba(255,185,143,.45);
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--cream-faint); font-style: italic; opacity: 1; }
+.field textarea { resize: vertical; min-height: 96px; line-height: 1.65; }
+.field select { cursor: pointer; }
+.field select option { background: #0c2415; color: var(--cream); }
+.field-hint { color: var(--cream-dim); margin-top: 9px; font-style: italic; line-height: 1.6; font-family: var(--serif); font-size: 14px; }
+
+/* validation */
+.err { font-size: 11px; color: var(--clay); margin-top: 7px; display: none; font-style: italic; }
+.field.invalid input, .field.invalid textarea, .field.invalid select { border-color: var(--clay); box-shadow: 0 0 0 1px rgba(197,100,60,.3); }
+.field.invalid .err { display: block; }
+
+/* submit */
+.submit-wrap { margin-top: 14px; }
+.submit-btn {
+  width: 100%; background: linear-gradient(135deg, var(--peach-hi), var(--peach) 55%, var(--peach-dim));
+  color: #14301f; border: none; border-radius: 3px; font-family: var(--sans); font-weight: 600;
+  font-size: 12px; letter-spacing: 4px; text-transform: uppercase; padding: 21px 24px; cursor: pointer;
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s; display: block;
+  box-shadow: 0 0 0 1px rgba(255,227,203,.25), 0 10px 40px -8px rgba(255,185,143,.5);
+}
+.submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(255,227,203,.4), 0 16px 52px -8px rgba(255,185,143,.7); }
+.submit-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.privacy-line { text-align: center; margin-top: 18px; font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--cream-faint); }
+.spinner-text { display: none; text-align: center; margin-top: 18px; font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--peach-dim); letter-spacing: 1px; }
+.submit-error { display: none; text-align: center; margin-top: 16px; font-size: 12.5px; color: var(--clay); line-height: 1.6; }
+
+/* success */
+#success-state { display: none; text-align: center; padding: 64px 0; }
+.success-leaf { font-family:'Segoe UI Symbol',var(--serif); font-size: 17px; color: var(--leaf); letter-spacing: 11px; margin-bottom: 30px; }
+.success-title { font-family: var(--serif); font-style: italic; font-size: 34px; color: var(--peach-hi); margin-bottom: 26px; line-height: 1.3; }
+.success-body { font-family: var(--serif); font-size: 17.5px; color: var(--cream-dim); line-height: 1.95; max-width: 430px; margin: 0 auto 28px; }
+.success-rule { border: none; border-top: 1px solid var(--rule); margin: 28px auto; max-width: 120px; }
+.success-sig { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--peach-dim); }
+
+/* footer */
+footer { background: #06130c; border-top: 1px solid var(--rule); padding: 22px 24px; text-align: center; font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--cream-faint); }
+
+@media (max-width: 480px) {
+  .reading-title { font-size: 24px; }
+  .intro { font-size: 17px; }
+  main { padding: 34px 20px 52px; }
+}
+</style>
+</head>
+<body>
+<canvas id="motes" aria-hidden="true"></canvas>
+
+<header class="header">
+  <div class="leaf-row">&#10087;&nbsp;&#10022;&nbsp;&#10087;</div>
+  <div class="shop-name">Moss &amp; Marrow</div>
+  <div class="reader-line">with Willow &nbsp;&middot;&nbsp; Reader of the Land</div>
+  <hr class="header-rule">
+  <div class="reading-title" id="js-title">Reading Intake</div>
+  <div class="reading-subtitle" id="js-subtitle">Complete your order below</div>
+</header>
+
+<main>
+
+  <!-- ── FORM STATE ── -->
+  <div id="form-state">
+
+    <p class="intro" id="js-intro">
+      Your reading begins here. Fill in the details below. The more honest and specific you are, the more precisely I can read.
+    </p>
+
+    <div class="privacy">
+      <div class="lock">&#128274;</div>
+      <p><b>Your details, kept close.</b> What you share here is used to prepare your
+      reading and for nothing else. It is never sold, never shared, and never used for
+      marketing. Delivery records are kept private, only for as long as needed to
+      fulfil and support your order, and removed on request. This page is encrypted.</p>
+    </div>
+
+    <form id="intake-form" novalidate autocomplete="off">
+
+      <!-- ORDER -->
+      <p class="section-label">Your Order</p>
+
+      <div class="field" id="wrap-order">
+        <label for="order_number">Etsy Order Number<span class="opt"> (required)</span></label>
+        <input type="text" id="order_number" name="order_number"
+               placeholder="e.g. 1234567890" inputmode="numeric">
+        <div class="field-hint">Found in your Etsy purchase confirmation email under &ldquo;Order #&rdquo;</div>
+        <div class="err" id="err-order">Please enter your Etsy order number</div>
+      </div>
+
+      <div class="field" id="wrap-reading-type">
+        <label for="reading_type">Which Reading Did You Order?<span class="opt"> (required)</span></label>
+        <select id="reading_type" name="reading_type">
+          <option value="">choose your reading</option>
+          <option value="love">Love Reading</option>
+          <option value="career">Career Reading</option>
+          <option value="clarity">Clarity Reading</option>
+          <option value="season">The Turning Year</option>
+        </select>
+        <div class="field-hint">Choose the reading you purchased. I cross-check this against your order number to be sure.</div>
+        <div class="err" id="err-reading-type">Please select which reading you ordered</div>
+      </div>
+
+      <div class="field" id="wrap-email">
+        <label for="customer_email">Email Address<span class="opt"> (your reading will be sent here)</span></label>
+        <input type="email" id="customer_email" name="customer_email"
+               placeholder="the address to receive your reading" autocomplete="email">
+        <div class="err" id="err-email">Please enter a valid email address</div>
+      </div>
+
+      <div class="field" id="wrap-name">
+        <label for="customer_name">Your Name</label>
+        <input type="text" id="customer_name" name="customer_name"
+               placeholder="first name is fine" autocomplete="given-name">
+        <div class="err" id="err-name">Please enter your name</div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- ABOUT YOU -->
+      <p class="section-label">About You</p>
+
+      <div class="field" id="wrap-client-dob">
+        <label for="client_dob" id="label-client-dob">Your Date of Birth</label>
+        <input type="date" id="client_dob" name="client_dob">
+        <div class="field-hint" id="hint-client-dob">The season you were born into is one of the threads I read. It tells me which element you carry into every question.</div>
+        <div class="err" id="err-client-dob">Please enter your date of birth</div>
+      </div>
+
+      <!-- POI SECTION: love only -->
+      <div id="poi-section" style="display:none;">
+        <hr class="divider">
+        <p class="section-label" id="js-poi-label">The Person You Are Asking About</p>
+
+        <div class="field" id="wrap-poi-name">
+          <label for="poi_name">Their First Name</label>
+          <input type="text" id="poi_name" name="poi_name"
+                 placeholder="first name only">
+          <div class="err" id="err-poi-name">Please enter their first name</div>
+        </div>
+
+        <div class="field" id="wrap-poi-dob">
+          <label for="poi_dob">Their Date of Birth<span class="opt"> (if you know it)</span></label>
+          <input type="date" id="poi_dob" name="poi_dob">
+          <div class="field-hint">The season they were born into sharpens the reading. Leave blank if you do not know it.</div>
+          <div class="err" id="err-poi-dob">Please enter their date of birth</div>
+        </div>
+      </div>
+
+      <!-- CLARITY AREA: clarity only -->
+      <div id="clarity-section" style="display:none;">
+        <div class="field" id="wrap-clarity-area">
+          <label for="clarity_area">What does this reading concern?</label>
+          <select id="clarity_area" name="clarity_area">
+            <option value="">select one</option>
+            <option value="A relationship or person">A relationship or person</option>
+            <option value="A decision I need to make">A decision I need to make</option>
+            <option value="A situation at work">A situation at work</option>
+            <option value="My own direction">My own direction</option>
+            <option value="Something I cannot name yet">Something I cannot name yet</option>
+          </select>
+          <div class="err" id="err-clarity-area">Please select an area</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- NOTES -->
+      <p class="section-label" id="js-notes-label">Your Situation</p>
+
+      <div class="field">
+        <label for="notes" id="label-notes">Brief note<span class="opt"> (optional)</span></label>
+        <textarea id="notes" name="notes"
+                  placeholder="The question you are carrying, and anything that keeps repeating around it. You do not need to share more than you are comfortable with."></textarea>
+        <div class="field-hint" id="hint-notes">I read from the land. Context helps me focus, but the reading is not built from what you tell me.</div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="submit-wrap">
+        <button type="submit" class="submit-btn" id="submit-btn">
+          Send My Intake to Willow
+        </button>
+        <p class="privacy-line">Sent encrypted, read only by Willow, used only for your reading.</p>
+        <div class="spinner-text" id="spinner">Carrying your question out&hellip;</div>
+        <div class="submit-error" id="submit-error">
+          Something went wrong. Please try again, or message the shop directly through Etsy.
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ── SUCCESS STATE ── -->
+  <div id="success-state">
+    <div class="success-leaf">&#10087;&nbsp;&#10022;&nbsp;&#10087;</div>
+    <div class="success-title">Your reading is confirmed.</div>
+    <div class="success-body">
+      I have received your intake. Your question comes outside with me during my next
+      working session, and your reading arrives by email when it is ready.<br><br>
+      Monday &ndash; Friday &nbsp;10am &ndash; 4pm<br>
+      Saturday &ndash; Sunday &nbsp;10am &ndash; 1pm<br>
+      Pacific Time<br><br>
+      If you need to add anything before I begin, reply to your Etsy order confirmation.
+    </div>
+    <hr class="success-rule">
+    <div class="success-sig">&mdash; Willow &nbsp;&middot;&nbsp; Moss &amp; Marrow</div>
+  </div>
+
+</main>
+
+<footer>
+  Moss &amp; Marrow &nbsp;&middot;&nbsp; Spiritual Guidance &amp; Entertainment &nbsp;&middot;&nbsp; Pacific Northwest
+</footer>
+
+<script>
+// ── READING TYPE CONFIG ────────────────────────────────────────────────────────
+
+const CONFIGS = {
+  love: {
+    title:              "Love Reading of the Land",
+    subtitle:           "Reading intake form",
+    intro:              "You already know the question. Fill in the details below and I will tell you what the land actually shows, not what is comfortable to hear.",
+    poi_label:          "The Person You Are Asking About",
+    notes_placeholder:  "The specific situation: what is happening, where things stand, what you are trying to understand. The more precise you are, the more precise your reading will be.",
+    client_dob_req:     false,
+    show_poi:           true,
+    show_clarity:       false,
+  },
+  career: {
+    title:              "Career Reading of the Land",
+    subtitle:           "Reading intake form",
+    intro:              "This reading is focused on you: where you stand, what the season is doing to the ground you work on, and the timing of what you are building.",
+    poi_label:          null,
+    notes_placeholder:  "Your current situation at work, and the specific question or decision you are sitting with. The more specific you are, the more useful this reading will be.",
+    client_dob_req:     true,
+    show_poi:           false,
+    show_clarity:       false,
+  },
+  clarity: {
+    title:              "Clarity Reading of the Land",
+    subtitle:           "Reading intake form",
+    intro:              "A clarity reading is for when you know something is there but cannot name it yet: a feeling, a pattern, a decision sitting just below the surface. Describe what you can, and I will read what the land shows.",
+    poi_label:          null,
+    notes_placeholder:  "The situation as specifically as you can describe it: what you are feeling, what is unclear, what you are trying to see more honestly.",
+    client_dob_req:     true,
+    show_poi:           false,
+    show_clarity:       true,
+  },
+  season: {
+    title:              "The Turning Year",
+    subtitle:           "Seasonal reading intake form",
+    intro:              "Eight readings across the turning year, one at each turn of the wheel. Tell me where you stand as it begins, and I will read each turn for where you are when it arrives.",
+    poi_label:          null,
+    notes_placeholder:  "Anything you want me to hold in mind across the year: what this year is carrying, what you are working toward, what keeps repeating around you.",
+    client_dob_req:     true,
+    show_poi:           false,
+    show_clarity:       false,
+  },
+};
+
+// ── APPS SCRIPT ENDPOINT ───────────────────────────────────────────────────────
+// TEMPLATE: replace with the deployed Google Apps Script web app URL for the
+// Moss & Marrow intake sheet (deployed from the mossandmarrowreadings account).
+const ENDPOINT = "PASTE_APPS_SCRIPT_URL_HERE";
+
+// ── APPLY CONFIG ───────────────────────────────────────────────────────────────
+
+const params = new URLSearchParams(window.location.search);
+
+let cfg = CONFIGS.love;
+
+function applyType(t) {
+  t = (t || "").toLowerCase().replace(/-/g, "_");
+  cfg = CONFIGS[t] || CONFIGS.love;
+
+  document.getElementById("js-title").textContent    = cfg.title;
+  document.getElementById("js-subtitle").textContent = cfg.subtitle;
+  document.getElementById("js-intro").textContent    = cfg.intro;
+  document.getElementById("notes").placeholder       = cfg.notes_placeholder;
+  document.title = "Moss & Marrow " + cfg.title;
+
+  const poi = document.getElementById("poi-section");
+  poi.style.display = cfg.show_poi ? "block" : "none";
+  if (cfg.show_poi && cfg.poi_label) {
+    document.getElementById("js-poi-label").textContent = cfg.poi_label;
+  }
+
+  document.getElementById("clarity-section").style.display = cfg.show_clarity ? "block" : "none";
+
+  const lbl  = document.getElementById("label-client-dob");
+  const hint = document.getElementById("hint-client-dob");
+  if (cfg.client_dob_req) {
+    lbl.innerHTML = "Your Date of Birth";
+    hint.textContent = "The season you were born into is one of the threads I read. It tells me which element you carry into every question.";
+  } else {
+    lbl.innerHTML = 'Your Date of Birth<span class="opt"> (optional)</span>';
+    hint.textContent = "The season you were born into sharpens the reading. Leave blank if you prefer.";
+  }
+}
+
+const readingTypeSelect = document.getElementById("reading_type");
+const preType = (params.get("type") || "").toLowerCase().replace(/-/g, "_");
+if (preType && CONFIGS[preType]) {
+  readingTypeSelect.value = preType;
+}
+applyType(readingTypeSelect.value);
+readingTypeSelect.addEventListener("change", function () { applyType(this.value); });
+
+// ── VALIDATION HELPERS ─────────────────────────────────────────────────────────
+
+function setValid(wrapId) {
+  const el = document.getElementById(wrapId);
+  if (el) el.classList.remove("invalid");
+}
+
+function setInvalid(wrapId) {
+  const el = document.getElementById(wrapId);
+  if (el) el.classList.add("invalid");
+}
+
+function validate() {
+  let ok = true;
+
+  const order = document.getElementById("order_number").value.trim().replace(/^#+\s*/, "");
+  const email = document.getElementById("customer_email").value.trim();
+  const name  = document.getElementById("customer_name").value.trim();
+
+  const readingType = document.getElementById("reading_type").value;
+
+  if (!order)                              { setInvalid("wrap-order"); ok = false; } else { setValid("wrap-order"); }
+  if (!readingType)                        { setInvalid("wrap-reading-type"); ok = false; } else { setValid("wrap-reading-type"); }
+  if (!email || !email.includes("@"))     { setInvalid("wrap-email"); ok = false; } else { setValid("wrap-email"); }
+  if (!name)                              { setInvalid("wrap-name");  ok = false; } else { setValid("wrap-name"); }
+
+  const clientDob = document.getElementById("client_dob").value;
+  if (cfg.client_dob_req && !clientDob)  { setInvalid("wrap-client-dob"); ok = false; } else { setValid("wrap-client-dob"); }
+
+  if (cfg.show_poi) {
+    const pn = document.getElementById("poi_name").value.trim();
+    if (!pn) { setInvalid("wrap-poi-name"); ok = false; } else { setValid("wrap-poi-name"); }
+  }
+
+  if (cfg.show_clarity) {
+    const ca = document.getElementById("clarity_area").value;
+    if (!ca) { setInvalid("wrap-clarity-area"); ok = false; } else { setValid("wrap-clarity-area"); }
+  }
+
+  return ok;
+}
+
+// ── FORM SUBMIT ────────────────────────────────────────────────────────────────
+
+// Apps Script endpoints cold-start after idle: the first request can be dropped
+// at the network level or stall in the 302 redirect chain, which would surface
+// as a false "Something went wrong" on a submit that a simple retry would carry.
+// Retry a few times with backoff and a per-attempt timeout. no-cors means we
+// cannot read the response, so a RESOLVED fetch (the request reached the server)
+// is treated as success and never retried. Only network rejections/timeouts are
+// retried, and real orders are deduped server-side by order number, so a retry
+// can never produce a double delivery.
+async function postWithRetry(url, body, attempts) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    const controller = new AbortController();
+    const timer = setTimeout(function () { controller.abort(); }, 20000);
+    try {
+      await fetch(url, {
+        method:  "POST",
+        mode:    "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body:    body,
+        signal:  controller.signal,
+      });
+      clearTimeout(timer);
+      return;                                   // reached the server, success
+    } catch (err) {
+      clearTimeout(timer);
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise(function (r) { setTimeout(r, 1200 * (i + 1)); });
+      }
+    }
+  }
+  throw lastErr;
+}
+
+document.getElementById("intake-form").addEventListener("submit", async function (e) {
+  e.preventDefault();
+
+  if (!validate()) {
+    const first = document.querySelector(".invalid input, .invalid textarea, .invalid select");
+    if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  const btn     = document.getElementById("submit-btn");
+  const spinner = document.getElementById("spinner");
+  const errBox  = document.getElementById("submit-error");
+
+  btn.disabled          = true;
+  spinner.style.display = "block";
+  errBox.style.display  = "none";
+
+  // Build combined notes
+  let notes = document.getElementById("notes").value.trim();
+  const clarityArea = cfg.show_clarity ? document.getElementById("clarity_area").value : "";
+  if (clarityArea) notes = clarityArea + (notes ? " | " + notes : "");
+
+  const payload = {
+    type:           document.getElementById("reading_type").value || "love",
+    order_number:   document.getElementById("order_number").value.trim().replace(/^#+\s*/, ""),
+    customer_email: document.getElementById("customer_email").value.trim(),
+    customer_name:  document.getElementById("customer_name").value.trim(),
+    client_dob:     document.getElementById("client_dob").value || "",
+    birth_time:     "",
+    birth_city:     "",
+    poi_name:       cfg.show_poi ? (document.getElementById("poi_name").value.trim() || "") : "",
+    poi_dob:        cfg.show_poi ? (document.getElementById("poi_dob").value || "") : "",
+    notes:          notes,
+  };
+
+  try {
+    await postWithRetry(ENDPOINT, JSON.stringify(payload), 3);
+
+    document.getElementById("form-state").style.display   = "none";
+    document.getElementById("success-state").style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+  } catch (err) {
+    btn.disabled          = false;
+    spinner.style.display = "none";
+    errBox.style.display  = "block";
+  }
+});
+
+// Clear invalid state on input
+document.querySelectorAll("input, textarea, select").forEach(function (el) {
+  el.addEventListener("input", function () {
+    const wrap = el.closest(".field");
+    if (wrap) wrap.classList.remove("invalid");
+  });
+});
+</script>
+<script>
+(function(){
+  var c=document.getElementById('motes'); if(!c) return;
+  var x=c.getContext('2d'), reduce=matchMedia('(prefers-reduced-motion: reduce)').matches, W,H,S=[];
+  function size(){var d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0)}
+  function seed(){S=[];var n=Math.floor(W*H/9000);for(var i=0;i<n;i++)S.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.3,p:Math.random()*6.28,s:.4+Math.random()*.6,peach:Math.random()<.22})}
+  size();seed();addEventListener('resize',function(){size();seed()});
+  (function fr(t){x.clearRect(0,0,W,H);
+    for(var i=0;i<S.length;i++){var s=S[i],tw=reduce?1:(.5+.5*Math.sin(s.p+(t||0)*.0011*s.s));
+      x.globalAlpha=tw*.6;x.fillStyle=s.peach?'#ffb98f':'#c8e2b9';x.beginPath();x.arc(s.x,s.y,s.r,0,6.28);x.fill();}
+    x.globalAlpha=1;requestAnimationFrame(fr);})();
+})();
+</script>
+</body>
+</html>

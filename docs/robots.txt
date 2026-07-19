@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mossandmarrowreadings.com/sitemap.xml

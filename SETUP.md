@@ -30,7 +30,7 @@ Etsy sale ──► buyer gets intake-form link ──► branded form posts to 
 | 3 | **Intake form + Google Sheet** | sheet ID in `SHEET_CONFIG`, secret `GOOGLE_SERVICE_ACCOUNT_JSON` | Clone the S&S pattern: branded HTML form on this site (`docs/intake/`) posting to a Google Apps Script that appends rows. Share the sheet with the service account email. Column layout must match `_COL` in `process_orders.py`. |
 | 4 | **Anthropic API key** | secret `ANTHROPIC_API_KEY` | Writes the readings. Same account as S&S is fine — cost tracking is per key, so a second key labelled "moss-marrow" keeps the books clean. |
 | 5 | **System prompt** | `moss-marrow-system-prompt.txt` (in repo) | Starter included. Grow it the S&S way: each miss becomes a rule. |
-| 6 | **Gmail sending address** | secrets `GMAIL_USER`, `GMAIL_APP_PASSWORD` | A separate address (e.g. willow.mossandmarrow@gmail.com) with an App Password. Do not send Willow's mail from Isadora's address — the doc's rule: siblings, never crossed. |
+| 6 | **Gmail sending address** | secrets `GMAIL_USER`, `GMAIL_APP_PASSWORD` | DONE: mossandmarrowreadings@gmail.com exists (set up 2026-07-19). Create an App Password for it (Google Account → Security → 2-Step Verification → App passwords) and add both secrets. Never send Willow's mail from Isadora's address. |
 | 7 | **Timezone** | repo variable `TIMEZONE` | `America/Los_Angeles` to match the persona. |
 | 8 | *(optional)* ElevenLabs voice | secrets `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | Only if The Whole Ground gets an audio deliverable. Needs a NEW voice — Willow cannot sound like Isadora. |
 | 9 | *(optional)* Google Calendar | secret `GOOGLE_CALENDAR_ID` | Only if a ceremony-scheduled tier is ever added. |
@@ -67,6 +67,26 @@ python land_engine.py                          # engine self-test
 python process_orders.py                       # must exit 1 with the safety guard
 SHOP_BRAND=moss-and-marrow ALLOW_TEST_ORDERS=1 python process_orders.py   # with env vars set
 ```
+
+## Domain: mossandmarrowreadings.com (chosen 2026-07-19)
+
+`docs/CNAME` is committed, so GitHub Pages expects the custom domain. To make
+it resolve, add these records in Porkbun (Domain Management → DNS) after
+registering the domain, replacing Porkbun's default parked-page records:
+
+| Type  | Host | Answer |
+|-------|------|--------|
+| A     | (blank / apex) | 185.199.108.153 |
+| A     | (blank / apex) | 185.199.109.153 |
+| A     | (blank / apex) | 185.199.110.153 |
+| A     | (blank / apex) | 185.199.111.153 |
+| CNAME | www  | swornsealed.github.io |
+
+Then in the repo: Settings → Pages → tick "Enforce HTTPS" once the
+certificate is issued (can take up to an hour after DNS propagates).
+Until DNS is set, the site is only reachable at
+https://swornsealed.github.io/moss-and-marrow/ (which will redirect to the
+custom domain once everything is live).
 
 ## GitHub: same account, new repo — no second account needed
 

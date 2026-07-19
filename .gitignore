@@ -1,0 +1,8 @@
+# Never commit these to GitHub
+etsy_tokens_PRIVATE.json
+*.env
+.env.*
+__pycache__/
+*.pyc
+# NOTE: state.json is deliberately NOT ignored — the Actions workflow commits
+# it every run (delivery queue + rotating Etsy refresh token).

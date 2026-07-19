@@ -1,0 +1,36 @@
+{
+  "last_checked_at": null,
+  "pending_deliveries": [
+    {
+      "submission_id": "clarity-row2",
+      "scheduled_for": "2026-07-19T12:20:31.481963+00:00",
+      "status": "error",
+      "customer_email": "addictedyz450f@gmail.com",
+      "customer_name": "Craig",
+      "order_number": "TEST-FS-CLARITY",
+      "tier": "First Sign",
+      "reading_type": "clarity",
+      "user_message": "CLIENT: Craig\nPOI: Craig\nPOI_DOB: 1985-03-14\nREADING_TYPE: clarity\nTIER: First Sign\nCLIENT_DOB: 1985-03-14\nLAND_DRAWN:\n  [plant] Nettle (fire) \u2014 a sting that feeds; the useful thing behind the warning\nSEASON: 28 days past Litha (the longest light, the turn begins), 13 days short of Lammas (first harvest, the proving of what was planted)\nSEASON_ELEMENT: earth\nLOUDEST_ELEMENT: earth  (patience, ground, the slow true thing; what holds and what must be built)\nNAME_NUMBER: 11\nREADING_DATE: 2026-07-19\nNOTES: A decision I need to make | Whether to put my energy into the new shop this season or hold until spring. Something keeps circling it.\nLUNAR_CONTEXT (accurate astronomy for the reading date, use ONLY this for any moon or lunar-date reference; never invent a phase, moon sign, or date):\n  On the reading date the Moon is a Waxing Crescent in Libra.\n  Next New Moon: 13 August 2026 (Moon in Leo).\n  Next Full Moon: 29 July 2026 (Moon in Aquarius).",
+      "tarot_block": "LAND_DRAWN:\n  [plant] Nettle (fire) \u2014 a sting that feeds; the useful thing behind the warning\nSEASON: 28 days past Litha (the longest light, the turn begins), 13 days short of Lammas (first harvest, the proving of what was planted)\nSEASON_ELEMENT: earth\nLOUDEST_ELEMENT: earth  (patience, ground, the slow true thing; what holds and what must be built)\nNAME_NUMBER: 11\nREADING_DATE: 2026-07-19",
+      "test": true,
+      "turn_number": null,
+      "intake_fields": null,
+      "tarot_result": {
+        "season_line": "28 days past Litha (the longest light, the turn begins), 13 days short of Lammas (first harvest, the proving of what was planted)",
+        "element": "earth",
+        "signs": [
+          {
+            "kind": "plant",
+            "name": "Nettle",
+            "element": "fire",
+            "note": "a sting that feeds; the useful thing behind the warning"
+          }
+        ],
+        "name_number": 11
+      },
+      "attempts": 1,
+      "error": "(535, b'5.7.8 Username and Password not accepted. For more information, go to\\n5.7.8  https://support.google.com/mail/?p=BadCredentials 5a478bee46e88-3142a1bb77csm29161236eec.18 - gsmtp')"
+    }
+  ],
+  "redeemed_orders": []
+}

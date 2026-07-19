@@ -50,7 +50,12 @@ jobs:
 
           # ── Google (service account with access to the intake sheet) ───────
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          GOOGLE_CALENDAR_ID:          ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GOOGLE_SHEET_ID:             ${{ secrets.GOOGLE_SHEET_ID }}
+
+          # ── Listing maps (Repository Variables; set once listings exist) ───
+          LISTING_TIER_MAP:    ${{ vars.LISTING_TIER_MAP }}
+          LISTING_TYPE_MAP:    ${{ vars.LISTING_TYPE_MAP }}
+          READING_LISTING_IDS: ${{ vars.READING_LISTING_IDS }}
 
           # ── Claude (Anthropic) ─────────────────────────────────────────────
           ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}

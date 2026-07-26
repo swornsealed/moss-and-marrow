@@ -23,6 +23,9 @@ engine's birth card / sun sign / planetary day):
   4. Name number     — Pythagorean numerology of the name, reduced onto
                        one of the three ættir (1.2x on its eight runes).
 
+Three casts ladder by tier (TIER_SPREAD): one stone (First Stone), five
+(Rune Casting), nine in three lines of three (The Nine Worlds).
+
 Merkstave: invertible runes fall face-down-reversed 30% of the time,
 deterministically. Nine runes are the same stone either way up (Gebo,
 Hagalaz, Nauthiz, Isa, Jera, Eihwaz, Sowilo, Ingwaz, Dagaz) and are
@@ -125,17 +128,55 @@ RUNES = [
 
 AETT_NAMES = ("Freyr's ætt", "Heimdall's ætt", "Tyr's ætt")
 
-# ─── THE CAST ─────────────────────────────────────────────────────────────────
-# Five stones, laid in the order drawn. The middle three are the Norns'
-# positions (Urd, Verdandi, Skuld); the first and last root and resolve them.
+# ─── THE CASTS ────────────────────────────────────────────────────────────────
+# Three depths, the way the tarot engine ladders three-card to ten-card
+# spreads. Each entry is (key, meaning); the draw takes as many stones as
+# the tier's list is long.
 
-CAST_POSITIONS = [
+# One stone. Odin's draw: a single question, a single answer.
+CAST_ONE = [
+    ("answer", "the one stone, drawn for the question as asked"),
+]
+
+# Five stones. The middle three are the Norns' positions (Urd, Verdandi,
+# Skuld); the first and last root and resolve them.
+CAST_FIVE = [
     ("beneath", "what lies beneath, the root of the matter"),
     ("behind",  "what came before, laid down and still binding (Urd)"),
     ("stands",  "where you stand, the present becoming (Verdandi)"),
     ("owed",    "what is owed, the debt or challenge that must be answered"),
     ("becomes", "what becomes, the shape already forming ahead (Skuld)"),
 ]
+
+# Nine stones, three lines of three, laid in reading order (row by row).
+# Read across as the Norns' three lines, and down as three columns:
+#   column 0 = you, column 1 = the matter itself, column 2 = what meets it.
+CAST_NINE = [
+    # Urd's line — what was laid down
+    ("root-you",     "Urd, your line: the root you carry into this, laid down before it began"),
+    ("root-matter",  "Urd, the matter's line: where this situation actually started"),
+    ("root-other",   "Urd, the meeting line: the debt or history carried in from outside you"),
+    # Verdandi's line — what is becoming
+    ("now-you",      "Verdandi, your line: you as you stand in it right now"),
+    ("now-matter",   "Verdandi, the matter's line: the heart of the thing as it is today"),
+    ("now-other",    "Verdandi, the meeting line: what stands with you or against you now"),
+    # Skuld's line — what is taking shape
+    ("ahead-you",    "Skuld, your line: what this will ask of you"),
+    ("ahead-matter", "Skuld, the matter's line: the way that opens if the asking is met"),
+    ("ahead-other",  "Skuld, the meeting line: what becomes of what meets you"),
+]
+
+# Tier → cast. Unknown tiers fall to the five-stone cast.
+TIER_SPREAD = {
+    "First Stone":     CAST_ONE,
+    "Rune Casting":    CAST_FIVE,
+    "The Nine Worlds": CAST_NINE,
+}
+
+# Line and column labels for the nine-stone cast, so the reading can be
+# told what it is looking at without re-deriving the geometry.
+NINE_LINES   = ("Urd (what was laid down)", "Verdandi (what is becoming)", "Skuld (what takes shape)")
+NINE_COLUMNS = ("you", "the matter itself", "what meets it")
 
 MERKSTAVE_RATE = 0.30
 
@@ -255,24 +296,29 @@ def draw_reading(
         reading_date = datetime.now(ZoneInfo(timezone)).strftime("%Y-%m-%d")
     on = datetime.strptime(reading_date, "%Y-%m-%d").date()
 
+    positions = TIER_SPREAD.get(tier, CAST_FIVE)
+
     rng     = random.Random(make_seed(poi_name, poi_dob or "", reading_date, reading_type))
     weights = _build_weights(poi_name, poi_dob or "", reading_type, on)
-    drawn   = _weighted_draw(weights, rng, len(CAST_POSITIONS))
+    drawn   = _weighted_draw(weights, rng, len(positions))
 
     runes = []
     aett_counts = [0, 0, 0]
     elem_counts = {}
     merk = 0
-    for (pos, pos_meaning), idx in zip(CAST_POSITIONS, drawn):
+    for (pos, pos_meaning), idx in zip(positions, drawn):
         name, glyph, aett, elem, _hm, upright, merkstave = RUNES[idx]
         reversed_face = merkstave is not None and rng.random() < MERKSTAVE_RATE
         if reversed_face:
             merk += 1
         aett_counts[aett] += 1
         elem_counts[elem] = elem_counts.get(elem, 0) + 1
+        entry_index = len(runes)
         runes.append({
             "position":         pos,
             "position_meaning": pos_meaning,
+            "line":             NINE_LINES[entry_index // 3] if len(positions) == 9 else "",
+            "column":           NINE_COLUMNS[entry_index % 3] if len(positions) == 9 else "",
             "rune":             name,
             "glyph":            glyph,
             "aett":             AETT_NAMES[aett],
@@ -292,11 +338,18 @@ def draw_reading(
     element_spread = ", ".join(f"{e} {c}" for e, c in sorted(elem_counts.items()))
 
     # Formatted block for the Claude intake
-    lines = ["RUNES_CAST:"]
+    lines = [f"RUNES_CAST ({len(runes)} stones, tier: {tier}):"]
     for r in runes:
         lines.append(
             f"  [{r['position']}] {r['rune']} {r['glyph']} ({r['orientation']}) — "
             f"{r['meaning']}  <{r['aett']}, {r['element']}; position: {r['position_meaning']}>"
+        )
+    if len(runes) == 9:
+        lines.append(
+            "CAST_SHAPE: three lines of three, laid row by row. Lines across = "
+            + "; ".join(NINE_LINES)
+            + ". Columns down = " + ", ".join(NINE_COLUMNS)
+            + ". Read both directions."
         )
     if br_name:
         lines.append(
@@ -304,7 +357,7 @@ def draw_reading(
             f"authoritative; their standing stone, read it as the person themselves wherever it falls)"
         )
     lines += [
-        f"MERKSTAVE_COUNT: {merk} of 5",
+        f"MERKSTAVE_COUNT: {merk} of {len(runes)}",
         f"AETT_SPREAD: {aett_spread}",
         f"ELEMENT_SPREAD: {element_spread}",
         f"SEASON: cast {season['season_line']}",
@@ -327,9 +380,13 @@ def draw_reading(
 # ─── CLI TEST ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    for tier in ("First Stone", "Rune Casting", "The Nine Worlds"):
+        out = draw_reading("Marion", "03/14/1988", "clarity", tier,
+                           reading_date="2026-07-20")
+        print(f"\n=== {tier} ===")
+        print(out["formatted_block"])
     out = draw_reading("Marion", "03/14/1988", "clarity", "Rune Casting",
                        reading_date="2026-07-20")
-    print(out["formatted_block"])
     again = draw_reading("Marion", "03/14/1988", "clarity", "Rune Casting",
                          reading_date="2026-07-20")
     assert out == again, "cast is not deterministic"

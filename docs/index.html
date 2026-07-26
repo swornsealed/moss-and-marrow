@@ -322,6 +322,12 @@ section{position:relative;padding:130px 24px}
 }
 
 /* ───────────────────────── footer ───────────────────────── */
+.stones-head{max-width:760px;margin:74px auto 34px;text-align:center}
+.stones-head .kicker{margin-bottom:14px}
+.stones-title{font-size:clamp(26px,3.6vw,38px);font-weight:400;line-height:1.2;margin-bottom:16px}
+.stones-title em{font-style:italic;color:var(--peach)}
+.stones-lede{font-size:17px;color:var(--white-dim);line-height:1.8;font-style:italic}
+.tiers.stones{margin-top:8px}
 footer{background:#06130c;padding:70px 24px 46px;text-align:center}
 footer .leafline{color:var(--peach-dim);font-size:15px;letter-spacing:.6em;text-indent:.6em;font-family:'Segoe UI Symbol',var(--serif)}
 footer .links{
@@ -554,26 +560,6 @@ html.shot .hero{min-height:900px}
         <a class="go" href="#begin">Request the Reading →</a>
       </div>
 
-      <!-- runes -->
-      <div class="tier reveal" style="transition-delay:.24s">
-        <svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">
-          <g fill="none" stroke="#c8e2b9" stroke-width="1.5" stroke-linecap="round">
-            <ellipse cx="20" cy="22" rx="11" ry="9" fill="rgba(143,184,131,.14)"/>
-            <path d="M17,17 L17,27 M17,17 L23,20 M17,22 L23,25"/>
-            <ellipse cx="44" cy="26" rx="10" ry="8.5" fill="rgba(143,184,131,.14)"/>
-            <path d="M44,21 L44,31 M44,24 L40,20 M44,24 L48,20"/>
-            <ellipse cx="31" cy="45" rx="11" ry="9" fill="rgba(255,185,143,.14)" stroke="#ffb98f"/>
-            <path d="M28,40 L28,50 M28,40 L34,44 L28,47" stroke="#ffb98f"/>
-          </g>
-        </svg>
-        <div class="tag">The Stones · One question</div>
-        <h3>Rune Casting</h3>
-        <div class="price">$45</div>
-        <div class="turn">Delivered in 2 to 4 hours</div>
-        <p>Five stones of the old north alphabet, cut from a fallen rowan and cast on open ground for your question. What lies beneath, what came before, where you stand, what is owed, what becomes. Read exactly as they fell, face up or face down.</p>
-        <a class="go" href="#begin">Request a Casting →</a>
-      </div>
-
       <!-- flagship: the one clay accent -->
       <div class="tier flagship reveal" style="transition-delay:.31s">
         <svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">
@@ -618,6 +604,77 @@ html.shot .hero{min-height:900px}
         <div class="turn">Delivered at each turn of the wheel</div>
         <p>A personal seasonal reading at each of the eight turns of the year, written for where you stand as the wheel moves. The year, read as it happens, kept as a record when it is done.</p>
         <a class="go" href="#begin">Join the Turning Year →</a>
+      </div>
+    </div>
+
+
+    <div class="stones-head reveal">
+      <div class="kicker">The stones</div>
+      <h3 class="stones-title">Cast in the <em>old alphabet.</em></h3>
+      <p class="stones-lede">Marks the north cut into wood and bone before it wrote anything down: harvest, ice, gift, daybreak. Mine came from a rowan that came down in a winter storm. They go out in my coat pocket and are cast on open ground, and I read them exactly as they fall, face up or face down.</p>
+    </div>
+
+    <div class="tiers stones">
+      <!-- one stone -->
+      <div class="tier reveal" style="transition-delay:.05s">
+        <svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="none" stroke="#8fb883" stroke-width="1.5" stroke-linecap="round">
+            <ellipse cx="32" cy="34" rx="14" ry="11.5" fill="rgba(143,184,131,.14)"/>
+            <path d="M27,27 L27,41 M27,27 L37,32 M27,34 L37,39"/>
+          </g>
+        </svg>
+        <div class="tag">One stone &#183; One question</div>
+        <h3>First Stone</h3>
+        <div class="price">$25</div>
+        <div class="turn">Delivered within working hours</div>
+        <p>One question, one stone. I put my hand in the pouch without looking and draw the single rune that answers it, then tell you plainly what it says. The shortest honest answer I sell.</p>
+        <a class="go" href="#begin">Request a Stone &#8594;</a>
+      </div>
+
+      <!-- five stones -->
+      <div class="tier reveal" style="transition-delay:.18s">
+        <svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="none" stroke="#c8e2b9" stroke-width="1.5" stroke-linecap="round">
+            <ellipse cx="20" cy="22" rx="11" ry="9" fill="rgba(143,184,131,.14)"/>
+            <path d="M17,17 L17,27 M17,17 L23,20 M17,22 L23,25"/>
+            <ellipse cx="44" cy="26" rx="10" ry="8.5" fill="rgba(143,184,131,.14)"/>
+            <path d="M44,21 L44,31 M44,24 L40,20 M44,24 L48,20"/>
+            <ellipse cx="31" cy="45" rx="11" ry="9" fill="rgba(255,185,143,.14)" stroke="#ffb98f"/>
+            <path d="M28,40 L28,50 M28,40 L34,44 L28,47" stroke="#ffb98f"/>
+          </g>
+        </svg>
+        <div class="tag">Five stones &#183; One situation</div>
+        <h3>Rune Casting</h3>
+        <div class="price">$45</div>
+        <div class="turn">Delivered in 2 to 4 hours</div>
+        <p>Five stones cast for your question. What lies beneath, what came before, where you stand, what is owed, and what becomes. The three middle stones are the Norns' own line, past into present into what is forming.</p>
+        <a class="go" href="#begin">Request a Casting &#8594;</a>
+      </div>
+
+      <!-- nine stones -->
+      <div class="tier reveal" style="transition-delay:.31s">
+        <svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="none" stroke="#ffb98f" stroke-width="1.3" stroke-linecap="round">
+            <rect x="8"  y="10" width="14" height="12" rx="5" fill="rgba(255,185,143,.10)"/>
+            <rect x="25" y="10" width="14" height="12" rx="5" fill="rgba(255,185,143,.10)"/>
+            <rect x="42" y="10" width="14" height="12" rx="5" fill="rgba(255,185,143,.10)"/>
+            <rect x="8"  y="26" width="14" height="12" rx="5" fill="rgba(255,185,143,.16)"/>
+            <rect x="25" y="26" width="14" height="12" rx="5" fill="rgba(255,185,143,.16)"/>
+            <rect x="42" y="26" width="14" height="12" rx="5" fill="rgba(255,185,143,.16)"/>
+            <rect x="8"  y="42" width="14" height="12" rx="5" fill="rgba(255,185,143,.10)"/>
+            <rect x="25" y="42" width="14" height="12" rx="5" fill="rgba(255,185,143,.10)"/>
+            <rect x="42" y="42" width="14" height="12" rx="5" fill="rgba(255,185,143,.10)"/>
+            <path d="M15,14 L15,18 M32,13 L32,19 M49,14 L49,18" opacity=".85"/>
+            <path d="M15,29 L15,35 M32,29 L32,35 M49,30 L49,34" opacity=".85"/>
+            <path d="M15,46 L15,50 M32,45 L32,51 M49,46 L49,50" opacity=".85"/>
+          </g>
+        </svg>
+        <div class="tag">Nine stones &#183; The deep cast</div>
+        <h3>The Nine Worlds</h3>
+        <div class="price">$95</div>
+        <div class="turn">Delivered in 4 to 8 hours</div>
+        <p>Nine stones in three lines of three. Read across, the three Norns: what was laid down, what is becoming, what takes shape. Read down, three threads: you, the matter itself, and what meets it. The pattern behind a situation, not only its answer.</p>
+        <a class="go" href="#begin">Request the Nine &#8594;</a>
       </div>
     </div>
 

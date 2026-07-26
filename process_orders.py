@@ -70,12 +70,18 @@ TIER_DELAYS = {
     "The Turning Year":    (5 * 60,   20 * 60),   # first drop same day; later drops re-queued per sabbat
     "The Whole Ground":    (4 * 3600, 8 * 3600),  # 4 – 8 hours
     "Reading of the Land": (2 * 3600, 4 * 3600),  # 2 – 4 hours
+    "The Nine Worlds":     (4 * 3600, 8 * 3600),  # 4 – 8 hours (the deep cast)
     "Rune Casting":        (2 * 3600, 4 * 3600),  # 2 – 4 hours
+    "First Stone":         (5 * 60,   20 * 60),   # 5 – 20 minutes
     "First Sign":          (5 * 60,   20 * 60),   # 5 – 20 minutes (plus cron slack ~ within the hour)
 }
 
 # Number of seasonal drops in a Turning Year subscription (the eight sabbats).
 TURNING_YEAR_DROPS = 8
+
+# The rune tiers, in ladder order. These cast the Elder Futhark (rune_engine)
+# instead of drawing the land (land_engine); everything downstream is shared.
+RUNE_TIERS = ("First Stone", "Rune Casting", "The Nine Worlds")
 
 # Deliverable sets. Add tiers only when the corresponding deliverable is built.
 TIERS_WITH_SPREAD_IMAGE = set()                    # future: a "record of the land" keepsake image
@@ -603,7 +609,8 @@ def _load_listing_tier_map():
     return mapping
 
 LISTING_TIER_MAP = _load_listing_tier_map()
-VALID_TIERS = ("First Sign", "Reading of the Land", "Rune Casting",
+VALID_TIERS = ("First Sign", "Reading of the Land",
+               "First Stone", "Rune Casting", "The Nine Worlds",
                "The Whole Ground", "The Turning Year")
 
 
@@ -614,6 +621,8 @@ def _match_tier_keywords(text):
     if "whole" in t and "ground" in t:       return "The Whole Ground"
     if "reading" in t and "land" in t:       return "Reading of the Land"
     if "first" in t and "sign" in t:         return "First Sign"
+    if "nine" in t and "world" in t:         return "The Nine Worlds"
+    if "first" in t and "stone" in t:        return "First Stone"
     if "rune" in t:                          return "Rune Casting"
     return None
 
@@ -1726,7 +1735,55 @@ Willow
 Moss & Marrow
 """
 
-CONFIRM_RUNE_CASTING = """Hi {name},
+CONFIRM_FIRST_STONE = """\
+Hi {name},
+
+Your First Stone is confirmed.
+
+One question, one stone. I will take your question outside during my next
+working session, put my hand in the pouch without looking, and draw the
+single rune that answers it. Then I tell you plainly what it says, face up
+or face down.
+
+Your reading arrives by email, usually within the hour of your form
+reaching me during working hours.
+
+Working hours: Monday to Friday 10am to 4pm, Saturday and Sunday 10am to
+1pm (Pacific Time). If you order outside these hours, your reading begins
+at the start of the next working window.
+
+Willow
+Moss & Marrow
+"""
+
+CONFIRM_NINE_WORLDS = """\
+Hi {name},
+
+Your Nine Worlds casting is confirmed.
+
+This is the deepest cast I lay. Nine stones, in three lines of three, on
+open ground: the line of what was laid down, the line of what is becoming,
+and the line of what takes shape ahead. Read across, those are the three
+Norns. Read down, they are you, the matter itself, and what meets it. Nine
+is the Futhark's own number, and a cast this size shows the pattern behind
+a situation, not only its answer.
+
+Your reading arrives by email within 4 to 8 hours, during my working
+hours: every stone read in its place, the lines and the columns both, and
+plain ground to stand on at the end.
+
+Working hours: Monday to Friday 10am to 4pm, Saturday and Sunday 10am to
+1pm (Pacific Time).
+
+If there is anything you would like to add before I begin, reply to this
+email.
+
+Willow
+Moss & Marrow
+"""
+
+CONFIRM_RUNE_CASTING = """\
+Hi {name},
 
 Your Rune Casting is confirmed.
 
@@ -1844,7 +1901,8 @@ def ingest_new_submissions(state, access_token):
                 tier = {
                     "FS": "First Sign", "RL": "Reading of the Land",
                     "WG": "The Whole Ground", "TY": "The Turning Year",
-                    "RC": "Rune Casting",
+                    "RC": "Rune Casting", "FST": "First Stone",
+                    "NW": "The Nine Worlds",
                 }.get(tier_code, "First Sign")
                 effective_type = {
                     "LOVE": "love", "CAREER": "career",
@@ -2036,7 +2094,7 @@ def ingest_new_submissions(state, access_token):
             # every other tier draws the land (season, element, and signs).
             tz           = os.environ.get("TIMEZONE", "America/Los_Angeles").strip()
             reading_date = datetime.now(ZoneInfo(tz)).strftime("%Y-%m-%d")
-            _engine = rune_draw_reading if tier == "Rune Casting" else draw_reading
+            _engine = rune_draw_reading if tier in RUNE_TIERS else draw_reading
             tarot = _engine(
                 poi_name=poi_name or customer_name,
                 poi_dob=poi_dob,
@@ -2081,7 +2139,7 @@ def ingest_new_submissions(state, access_token):
                         "merkstave_count": tarot["merkstave_count"],
                         "name_number":     tarot["name_number"],
                     }
-                    if tier == "Rune Casting" else
+                    if tier in RUNE_TIERS else
                     {
                         "season_line": tarot["season"]["season_line"],
                         "element":     tarot["element"],
@@ -2124,6 +2182,18 @@ def ingest_new_submissions(state, access_token):
                         customer_email,
                         "Your Rune Casting, Confirmed",
                         CONFIRM_RUNE_CASTING.format(name=customer_name),
+                    )
+                elif tier == "First Stone":
+                    send_email(
+                        customer_email,
+                        "Your First Stone, Confirmed",
+                        CONFIRM_FIRST_STONE.format(name=customer_name),
+                    )
+                elif tier == "The Nine Worlds":
+                    send_email(
+                        customer_email,
+                        "Your Nine Worlds Casting, Confirmed",
+                        CONFIRM_NINE_WORLDS.format(name=customer_name),
                     )
                 else:
                     send_email(

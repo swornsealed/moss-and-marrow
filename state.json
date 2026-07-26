@@ -31,8 +31,51 @@
       "attempts": 2,
       "error": "(535, b'5.7.8 Username and Password not accepted. For more information, go to\\n5.7.8  https://support.google.com/mail/?p=BadCredentials 5a478bee46e88-3142a1bb77csm29161236eec.18 - gsmtp')",
       "sent_at": "2026-07-19T06:14:15.882360-07:00"
+    },
+    {
+      "submission_id": "clarity-row3",
+      "scheduled_for": "2026-07-26T23:22:39.973147+00:00",
+      "status": "sent",
+      "customer_email": "addictedyz450f@gmail.com",
+      "customer_name": "Craig",
+      "order_number": "TEST-WG-CLARITY",
+      "tier": "The Whole Ground",
+      "reading_type": "clarity",
+      "user_message": "CLIENT: Craig\nPOI: Craig\nPOI_DOB: 1985-03-14\nREADING_TYPE: clarity\nTIER: The Whole Ground\nCLIENT_DOB: 1985-03-14\nLAND_DRAWN:\n  [plant] Douglas fir (earth) \u2014 the long ambition; slow height, deep hold\n  [animal] Black-tailed deer (earth) \u2014 quiet passage; the one who moves without disturbing\n  [root] Skunk cabbage (fire) \u2014 the unlovely herald; spring announced by what no one praises\nSEASON: 35 days past Litha (the longest light, the turn begins), 6 days short of Lammas (first harvest, the proving of what was planted)\nSEASON_ELEMENT: earth\nLOUDEST_ELEMENT: earth  (patience, ground, the slow true thing; what holds and what must be built)\nNAME_NUMBER: 11\nREADING_DATE: 2026-07-26\nNOTES: A decision I need to make | Whether to open the second shop this season or wait until the year turns. The same question keeps coming back and I keep putting it down.\nLUNAR_CONTEXT (accurate astronomy for the reading date, use ONLY this for any moon or lunar-date reference; never invent a phase, moon sign, or date):\n  On the reading date the Moon is a Waxing Gibbous in Sagittarius.\n  Next New Moon: 13 August 2026 (Moon in Leo).\n  Next Full Moon: 28 August 2026 (Moon in Pisces).",
+      "tarot_block": "LAND_DRAWN:\n  [plant] Douglas fir (earth) \u2014 the long ambition; slow height, deep hold\n  [animal] Black-tailed deer (earth) \u2014 quiet passage; the one who moves without disturbing\n  [root] Skunk cabbage (fire) \u2014 the unlovely herald; spring announced by what no one praises\nSEASON: 35 days past Litha (the longest light, the turn begins), 6 days short of Lammas (first harvest, the proving of what was planted)\nSEASON_ELEMENT: earth\nLOUDEST_ELEMENT: earth  (patience, ground, the slow true thing; what holds and what must be built)\nNAME_NUMBER: 11\nREADING_DATE: 2026-07-26",
+      "test": true,
+      "turn_number": null,
+      "intake_fields": null,
+      "tarot_result": {
+        "season_line": "35 days past Litha (the longest light, the turn begins), 6 days short of Lammas (first harvest, the proving of what was planted)",
+        "element": "earth",
+        "signs": [
+          {
+            "kind": "plant",
+            "name": "Douglas fir",
+            "element": "earth",
+            "note": "the long ambition; slow height, deep hold"
+          },
+          {
+            "kind": "animal",
+            "name": "Black-tailed deer",
+            "element": "earth",
+            "note": "quiet passage; the one who moves without disturbing"
+          },
+          {
+            "kind": "root",
+            "name": "Skunk cabbage",
+            "element": "fire",
+            "note": "the unlovely herald; spring announced by what no one praises"
+          }
+        ],
+        "name_number": 11
+      },
+      "attempts": 1,
+      "sent_at": "2026-07-26T16:22:42.092250-07:00",
+      "audio_script": "Hey Craig... [short pause] it's Willow. I just came in from your reading, I still have my coat on, the ground out there was soft this morning after the night's damp, and I wanted to talk to you before I sit down and write any of this properly.\n\n[pause] The thing I keep coming back to, the thing that was with me the whole time I was out there, is that you are not someone who does not know what to do. [warmly] That was clear from the first minute. You know what to do. The question is why you are not letting yourself do it.\n\n[short pause] There was a deer this morning, at the edge of the trees while I was reading. Stood there longer than you would expect. Not frozen, not afraid, just... reading the clearing. And then she crossed. Simple as that. I thought about you the whole time I was watching her. [exhales] [pause]\n\nThe fir was there too. Big old one. And I kept thinking, all that height came from years nobody saw. Years of lateral work, quiet, underground. You have done those years, Craig. I want you to know that came through clearly. This is not someone who is not ready. This is someone who has been ready for longer than they have admitted.\n\n[long pause] The root sign is the thing I am still sitting with, honestly. Skunk cabbage. [curious] Not what you would choose for yourself, maybe. But it is the plant that comes first, in the cold, in the wet, before anything else is willing to. It does the necessary work before the praised work arrives. And I think somewhere in this question you are waiting for the first shop to look a certain way before you let anyone see more of what you are building. [softly] You do not have to wait for that.\n\n[short pause] Nothing out there today was unkind. Everything was moving. That is what I want you to carry before you read a single word of the full reading. The ground is not against you. The season is not against you. [short pause] The only thing in your way is the delay itself.\n\nOkay. I am going to sit down and write this up properly for you now. Take your time with it when it comes... but not too much time. [chuckles] [short pause] Talk soon, Craig."
     }
   ],
   "redeemed_orders": [],
-  "etsy_down_alerted_at": "2026-07-19T13:14:13.034813+00:00"
+  "etsy_down_alerted_at": "2026-07-26T23:22:35.247119+00:00"
 }

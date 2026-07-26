@@ -19,8 +19,10 @@ Shop email: mossandmarrowreadings@gmail.com.
 - Point the two Etsy links (final CTA + footer) at the live shop. Search `TEMPLATE:` comments in the HTML.
 - Set the Porkbun DNS records for mossandmarrowreadings.com (see SETUP.md) and enforce HTTPS.
 - Add the Actions secrets, then enable the workflow (SETUP.md checklist).
-- Prices shown are the launch-plan defaults: First Sign $28, Reading of the Land $68,
-  The Whole Ground $135, The Turning Year $22 per turn.
+- Prices shown are the launch-plan defaults: First Sign $28, Rune Casting $45,
+  Reading of the Land $68, The Whole Ground $135, The Turning Year $22 per turn.
+  (Rune Casting uses `rune_engine.py` — a five-stone Elder Futhark cast with the
+  same seeded-draw design as the S&S tarot engine; TEST code tier `RC`.)
 
 ## Preview
 ```

@@ -26,7 +26,7 @@ Etsy sale ──► buyer gets intake-form link ──► branded form posts to 
 | # | Thing | Where it goes | Notes |
 |---|-------|--------------|-------|
 | 1 | **Etsy shop + API app** for Moss & Marrow | secrets `ETSY_API_KEY`, `ETSY_SHOP_ID`, `ETSY_REFRESH_TOKEN` | Own shop = own tokens. Run `get_etsy_tokens.py` (copy from the S&S repo) once to mint the refresh token. Token self-rotates in `state.json` afterwards. |
-| 2 | **Listing IDs → tiers** | repo variable `LISTING_TIER_MAP` | e.g. `123:First Sign,456:Reading of the Land,789:The Whole Ground,321:The Turning Year`. Set after the four listings are published. |
+| 2 | **Listing IDs → tiers** | repo variable `LISTING_TIER_MAP` | e.g. `123:First Sign,555:Rune Casting,456:Reading of the Land,789:The Whole Ground,321:The Turning Year`. Set after the four listings are published. |
 | 3 | **Intake form + Google Sheet** | sheet ID in `SHEET_CONFIG`, secret `GOOGLE_SERVICE_ACCOUNT_JSON` | Clone the S&S pattern: branded HTML form on this site (`docs/intake/`) posting to a Google Apps Script that appends rows. Share the sheet with the service account email. Column layout must match `_COL` in `process_orders.py`. |
 | 4 | **Anthropic API key** | secret `ANTHROPIC_API_KEY` | Writes the readings. Same account as S&S is fine — cost tracking is per key, so a second key labelled "moss-marrow" keeps the books clean. |
 | 5 | **System prompt** | `moss-marrow-system-prompt.txt` (in repo) | Starter included. Grow it the S&S way: each miss becomes a rule. |

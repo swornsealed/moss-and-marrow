@@ -24,7 +24,8 @@ import smtplib
 import requests
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from land_engine import draw_reading   # Moss & Marrow engine (same interface as tarot_engine)
+from land_engine import draw_reading                        # season/element/sign engine
+from rune_engine import draw_reading as rune_draw_reading   # Elder Futhark cast (same interface)
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -69,6 +70,7 @@ TIER_DELAYS = {
     "The Turning Year":    (5 * 60,   20 * 60),   # first drop same day; later drops re-queued per sabbat
     "The Whole Ground":    (4 * 3600, 8 * 3600),  # 4 – 8 hours
     "Reading of the Land": (2 * 3600, 4 * 3600),  # 2 – 4 hours
+    "Rune Casting":        (2 * 3600, 4 * 3600),  # 2 – 4 hours
     "First Sign":          (5 * 60,   20 * 60),   # 5 – 20 minutes (plus cron slack ~ within the hour)
 }
 
@@ -601,7 +603,7 @@ def _load_listing_tier_map():
     return mapping
 
 LISTING_TIER_MAP = _load_listing_tier_map()
-VALID_TIERS = ("First Sign", "Reading of the Land",
+VALID_TIERS = ("First Sign", "Reading of the Land", "Rune Casting",
                "The Whole Ground", "The Turning Year")
 
 
@@ -612,6 +614,7 @@ def _match_tier_keywords(text):
     if "whole" in t and "ground" in t:       return "The Whole Ground"
     if "reading" in t and "land" in t:       return "Reading of the Land"
     if "first" in t and "sign" in t:         return "First Sign"
+    if "rune" in t:                          return "Rune Casting"
     return None
 
 
@@ -1092,6 +1095,12 @@ def _auto_bold(text: str) -> str:
     """
     import re
     TERMS = [
+        # The Elder Futhark
+        r"Fehu", r"Uruz", r"Thurisaz", r"Ansuz", r"Raidho", r"Kenaz",
+        r"Gebo", r"Wunjo", r"Hagalaz", r"Nauthiz", r"Isa", r"Jera",
+        r"Eihwaz", r"Perthro", r"Algiz", r"Sowilo", r"Tiwaz", r"Berkano",
+        r"Ehwaz", r"Mannaz", r"Laguz", r"Ingwaz", r"Othala", r"Dagaz",
+        r"merkstave",
         # The eight turns of the wheel
         r"Samhain", r"Yule", r"Imbolc", r"Ostara",
         r"Beltane", r"Litha", r"Lammas", r"Mabon",
@@ -1717,6 +1726,31 @@ Willow
 Moss & Marrow
 """
 
+CONFIRM_RUNE_CASTING = """Hi {name},
+
+Your Rune Casting is confirmed.
+
+The runes are an old alphabet of the north, each mark a thing the land
+already knows: harvest, ice, gift, daybreak. Mine are cut from a fallen
+rowan branch, and they come outside with me the way everything here does.
+I will carry your question out during my next working session and cast
+five stones for it on open ground: what lies beneath, what came before,
+where you stand, what is owed, and what becomes.
+
+Your reading arrives by email within 2 to 4 hours, during my working
+hours: the five stones as they fell, face up or face down, each one read
+plainly against your question.
+
+Working hours: Monday to Friday 10am to 4pm, Saturday and Sunday 10am to
+1pm (Pacific Time).
+
+If there is anything you would like to add before I begin, reply to this
+email.
+
+Willow
+Moss & Marrow
+"""
+
 CONFIRM_TURNING_YEAR = """\
 Hi {name},
 
@@ -1810,6 +1844,7 @@ def ingest_new_submissions(state, access_token):
                 tier = {
                     "FS": "First Sign", "RL": "Reading of the Land",
                     "WG": "The Whole Ground", "TY": "The Turning Year",
+                    "RC": "Rune Casting",
                 }.get(tier_code, "First Sign")
                 effective_type = {
                     "LOVE": "love", "CAREER": "career",
@@ -1997,10 +2032,12 @@ def ingest_new_submissions(state, access_token):
                 poi_name = fields.get("poi_name", "")
                 poi_dob  = fields.get("poi_dob", "")
 
-            # Draw the land: season, element, and signs
+            # Draw for the tier: the Rune Casting tier casts the Elder Futhark;
+            # every other tier draws the land (season, element, and signs).
             tz           = os.environ.get("TIMEZONE", "America/Los_Angeles").strip()
             reading_date = datetime.now(ZoneInfo(tz)).strftime("%Y-%m-%d")
-            tarot = draw_reading(
+            _engine = rune_draw_reading if tier == "Rune Casting" else draw_reading
+            tarot = _engine(
                 poi_name=poi_name or customer_name,
                 poi_dob=poi_dob,
                 reading_type=effective_type,
@@ -2037,12 +2074,21 @@ def ingest_new_submissions(state, access_token):
                 # the intake fields so later turns can be redrawn for their date.
                 "turn_number":    1 if tier == "The Turning Year" else None,
                 "intake_fields":  dict(fields) if tier == "The Turning Year" else None,
-                "tarot_result": {
-                    "season_line": tarot["season"]["season_line"],
-                    "element":     tarot["element"],
-                    "signs":       tarot["signs"],
-                    "name_number": tarot["name_number"],
-                },
+                "tarot_result": (
+                    {
+                        "runes":           tarot["runes"],
+                        "birth_rune":      tarot["birth_rune"],
+                        "merkstave_count": tarot["merkstave_count"],
+                        "name_number":     tarot["name_number"],
+                    }
+                    if tier == "Rune Casting" else
+                    {
+                        "season_line": tarot["season"]["season_line"],
+                        "element":     tarot["element"],
+                        "signs":       tarot["signs"],
+                        "name_number": tarot["name_number"],
+                    }
+                ),
             })
             existing_ids.add(sub_id)
             existing_orders.add(order_number)
@@ -2072,6 +2118,12 @@ def ingest_new_submissions(state, access_token):
                         customer_email,
                         "Your Moss & Marrow Reading, Confirmed",
                         CONFIRM_READING_OF_LAND.format(name=customer_name),
+                    )
+                elif tier == "Rune Casting":
+                    send_email(
+                        customer_email,
+                        "Your Rune Casting, Confirmed",
+                        CONFIRM_RUNE_CASTING.format(name=customer_name),
                     )
                 else:
                     send_email(

@@ -64,7 +64,8 @@ CUT_LIP      = (236, 219, 191)     # the wall catching it
 # terracotta reserved for whatever the reading actually drew.
 INK          = ( 18,  42,  28)     # titles and names: deep forest
 INK_DIM      = ( 60,  92,  60)     # subtitles and secondary lines
-INK_FAINT    = ( 84, 114,  80)     # tracked caps and the footer: moss
+INK_FAINT    = ( 66,  96,  64)     # tracked caps and the footer: moss, kept
+                                   # dark enough to clear 4.5:1 on the cloth
 PEACH        = (255, 185, 143)     # the brand accent, on the frame only
 CREAM        = (248, 246, 239)
 RULE         = (192, 182, 160)

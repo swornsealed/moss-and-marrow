@@ -2155,6 +2155,8 @@ def ingest_new_submissions(state, access_token):
                     if tier in RUNE_TIERS else
                     {
                         "season_line": draw["season"]["season_line"],
+                        "prev_sabbat": draw["season"]["prev_sabbat"],
+                        "birth_md":    draw.get("birth_md"),
                         "element":     draw["element"],
                         "signs":       draw["signs"],
                         "name_number": draw["name_number"],
@@ -2286,6 +2288,8 @@ def _queue_next_turning_year_drop(state, delivery):
         "intake_fields":  fields,
         "draw_result": {
             "season_line": draw["season"]["season_line"],
+            "prev_sabbat": draw["season"]["prev_sabbat"],
+            "birth_md":    draw.get("birth_md"),
             "element":     draw["element"],
             "signs":       draw["signs"],
             "name_number": draw["name_number"],

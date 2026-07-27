@@ -121,6 +121,19 @@ def name_number(name: str) -> int:
     return _reduce(total) if total else 0
 
 
+def parse_dob(dob: str):
+    """(month, day) from a date of birth in any of the accepted formats."""
+    if not dob:
+        return None
+    for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y"):
+        try:
+            d = datetime.strptime(dob.strip(), fmt).date()
+            return (d.month, d.day)
+        except ValueError:
+            continue
+    return None
+
+
 def birth_season_element(dob: str) -> str | None:
     """Element of the sabbat season the person was born into. DOB optional."""
     if not dob:
@@ -264,6 +277,7 @@ def draw_reading(
 
     return {
         "season":          season,
+        "birth_md":        parse_dob(poi_dob or ""),   # where they came into the year
         "element":         element,
         "element_note":    ELEMENTS[element],
         "signs":           signs,

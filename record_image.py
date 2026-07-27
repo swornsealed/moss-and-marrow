@@ -460,12 +460,44 @@ def _save(img, canvas_w, canvas_h, output_path):
 # Each sabbat carries an element, the same ones the engine weighs, so the
 # wheel can be read in colour: the stretch of year a sabbat opens is drawn
 # in that element.
+# name, month, day, element, kind, what the station is for.
+# Four are astronomical and given: the solstices and equinoxes, which the sun
+# keeps whether or not anyone marks them. Four are agricultural and worked:
+# the cross-quarters, about livestock and grain, which fall between.
 SABBAT_DATES = [
-    ("Yule",    12, 21, "earth"), ("Imbolc",   2,  1, "water"),
-    ("Ostara",   3, 20, "air"),   ("Beltane",  5,  1, "fire"),
-    ("Litha",    6, 21, "fire"),  ("Lammas",   8,  1, "earth"),
-    ("Mabon",    9, 22, "earth"), ("Samhain", 11,  1, "water"),
+    ("Yule",    12, 21, "earth", "sun",  "the still point"),
+    ("Imbolc",   2,  1, "water", "fire", "quickening"),
+    ("Ostara",   3, 20, "air",   "sun",  "light gaining"),
+    ("Beltane",  5,  1, "fire",  "fire", "full flower"),
+    ("Litha",    6, 21, "fire",  "sun",  "longest light"),
+    ("Lammas",   8,  1, "earth", "fire", "first harvest"),
+    ("Mabon",    9, 22, "earth", "sun",  "dark gaining"),
+    ("Samhain", 11,  1, "water", "fire", "the letting go"),
 ]
+
+DARK_HALF  = (221, 214, 195)     # Samhain to Beltane, the year turned inward
+LIGHT_BAND = (232, 214, 172)     # the daylight the year is actually carrying
+
+
+def _sun_mark(d, cx, cy, size, col, S):
+    """An astronomical station: a station the sun keeps."""
+    r = size * 0.30
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=col, width=max(2, int(S * 1.2)))
+    for i in range(8):
+        a = math.radians(i * 45)
+        d.line([(cx + math.cos(a) * r * 1.45, cy + math.sin(a) * r * 1.45),
+                (cx + math.cos(a) * r * 2.05, cy + math.sin(a) * r * 2.05)],
+               fill=col, width=max(1, S))
+
+
+def _fire_mark(d, cx, cy, size, col, S):
+    """An agricultural station: a fire festival, lit by people."""
+    h = size * 0.62
+    d.polygon([(cx, cy - h * 0.72),
+               (cx + h * 0.42, cy + h * 0.10),
+               (cx + h * 0.22, cy + h * 0.60),
+               (cx - h * 0.22, cy + h * 0.60),
+               (cx - h * 0.42, cy + h * 0.10)], fill=col)
 
 
 def _year_angle(month, day, ref_year=2026):
@@ -482,35 +514,76 @@ def _on_circle(cx, cy, r, deg):
     return cx + r * math.cos(a), cy + r * math.sin(a)
 
 
-def _wheel(d, cx, cy, r, season, reading_date, S):
+def _ring_label(d, cx, cy, r, ang, name, gloss, col, S):
+    """Set a station's name outside the rim, growing away from the wheel, so
+    that labels at the sides never lie across the ring."""
+    name_f, gloss_f = _font(15 * S, bold=True), _font(12 * S)
+    lx, ly = _on_circle(cx, cy, r * 1.06, ang)
+    ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+    nw, gw = _tw(d, name, name_f), _tw(d, gloss, gloss_f)
+    if ca > 0.25:                      # right side: run outward to the right
+        dx_n, dx_g = 0, 0
+    elif ca < -0.25:                   # left side: run outward to the left
+        dx_n, dx_g = -nw, -gw
+    else:                              # top and bottom: centred
+        dx_n, dx_g = -nw / 2, -gw / 2
+    if abs(ca) <= 0.25:
+        base = ly - 36 * S if sa < 0 else ly + 6 * S
+    else:
+        base = ly - 16 * S
+    d.text((lx + dx_n, base), name, font=name_f, fill=col)
+    d.text((lx + dx_g, base + 19 * S), gloss, font=gloss_f, fill=INK_FAINT)
+
+
+def _wheel(d, cx, cy, r, season, reading_date, S, birth_md=None):
+    """The wheel of the year: a solar and agricultural calendar.
+
+    Four stations are astronomical and given, the solstices and equinoxes;
+    four are agricultural and worked, the cross-quarter fire festivals that
+    fall between them. The year also has a dark half and a light half, hinged
+    at Samhain and Beltane, and the daylight it carries grows to Litha and
+    fails to Yule. All of that is drawn here rather than implied.
+    """
     from datetime import date as _date
 
-    # the ring, drawn as eight stretches in the colour of the element each
-    # sabbat opens, so the year reads round rather than as a bare circle
+    yule_a = _year_angle(12, 21)
+    box_r = lambda k: [cx - r * k, cy - r * k, cx + r * k, cy + r * k]
+
+    # the dark half, drawn as a band on the rim rather than a wedge to the
+    # middle: the year turned inward, Samhain round through Yule to Beltane
+    a_sam, a_bel = _year_angle(11, 1), _year_angle(5, 1)
+    d.pieslice(box_r(0.99), a_sam, a_bel + 360 if a_bel <= a_sam else a_bel,
+               fill=DARK_HALF)
+    d.ellipse(box_r(0.66), fill=CLOTH)
+
+    # the daylight the year is carrying: widest at Litha, gone at Yule
+    inner, floor_, amp = r * 0.24, r * 0.07, r * 0.29
+    outer_pts, inner_pts = [], []
+    for i in range(0, 361, 3):
+        ang = yule_a + i
+        light = (1 - math.cos(math.radians(i))) / 2.0
+        outer_pts.append(_on_circle(cx, cy, inner + floor_ + amp * light, ang))
+        inner_pts.append(_on_circle(cx, cy, inner, ang))
+    d.polygon(outer_pts + inner_pts[::-1], fill=LIGHT_BAND)
+
+    # the rim, in eight stretches, each the element of the sabbat opening it
     n = len(SABBAT_DATES)
-    for i, (name, mo, dy, el) in enumerate(SABBAT_DATES):
+    for i, (name, mo, dy, el, kind, gloss) in enumerate(SABBAT_DATES):
         a0 = _year_angle(mo, dy)
-        _n2, mo2, dy2, _el2 = SABBAT_DATES[(i + 1) % n]
-        a1 = _year_angle(mo2, dy2)
+        a1 = _year_angle(SABBAT_DATES[(i + 1) % n][1], SABBAT_DATES[(i + 1) % n][2])
         if a1 <= a0:
             a1 += 360
-        d.arc([cx - r, cy - r, cx + r, cy + r], a0, a1,
-              fill=ELEMENT_COLOUR.get(el, INK_LINE), width=max(3, int(S * 2.4)))
+        d.arc(box_r(1.0), a0, a1, fill=ELEMENT_COLOUR.get(el, INK_LINE),
+              width=max(3, int(S * 2.6)))
 
-    d.ellipse([cx - r * 0.78, cy - r * 0.78, cx + r * 0.78, cy + r * 0.78],
-              outline=INK_FAINT_LN, width=max(1, S // 2))
-
-    name_f = _font(15 * S, bold=True)
-    for name, mo, dy, el in SABBAT_DATES:
+    for name, mo, dy, el, kind, gloss in SABBAT_DATES:
         ang = _year_angle(mo, dy)
         col = ELEMENT_COLOUR.get(el, INK_LINE)
-        d.line([_on_circle(cx, cy, r * 0.78, ang), _on_circle(cx, cy, r, ang)],
+        d.line([_on_circle(cx, cy, r * 0.70, ang), _on_circle(cx, cy, r, ang)],
                fill=col, width=max(2, int(S * 1.7)))
-        gx, gy = _on_circle(cx, cy, r * 0.63, ang)
-        _element_mark(d, el, gx, gy, 21 * S, col, S, weight=max(1, int(S * 1.2)))
-        lx, ly = _on_circle(cx, cy, r * 1.20, ang)
-        d.text((lx - _tw(d, name, name_f) / 2, ly - 11 * S), name,
-               font=name_f, fill=col)
+        gx, gy = _on_circle(cx, cy, r * 0.845, ang)
+        (_sun_mark if kind == "sun" else _fire_mark)(d, gx, gy, 22 * S, col, S)
+        _ring_label(d, cx, cy, r, ang, name, gloss, col, S)
 
     # how far into the present stretch the year has come
     try:
@@ -524,17 +597,23 @@ def _wheel(d, cx, cy, r, season, reading_date, S):
         a1 = _year_angle(today.month, today.day, today.year)
         if a1 <= a0:
             a1 += 360
-        d.arc([cx - r * 0.90, cy - r * 0.90, cx + r * 0.90, cy + r * 0.90],
-              a0, a1, fill=ELEMENT_COLOUR.get(prev[3], TERRACOTTA),
-              width=max(5, int(S * 4.5)))
+        d.arc(box_r(1.0), a0, a1, fill=TERRACOTTA, width=max(6, int(S * 5.2)))
+
+    # where they came into the year
+    if birth_md:
+        ang = _year_angle(birth_md[0], birth_md[1])
+        bx, by = _on_circle(cx, cy, r * 0.635, ang)
+        d.ellipse([bx - 10 * S, by - 10 * S, bx + 10 * S, by + 10 * S],
+                  fill=CLOTH, outline=INK, width=max(2, int(S * 1.5)))
+        d.ellipse([bx - 3 * S, by - 3 * S, bx + 3 * S, by + 3 * S], fill=INK)
 
     if today:
         ang = _year_angle(today.month, today.day, today.year)
-        tip = _on_circle(cx, cy, r * 0.78, ang)
-        d.line([(cx, cy), tip], fill=TERRACOTTA, width=max(3, int(S * 1.8)))
-        d.ellipse([tip[0] - 8 * S, tip[1] - 8 * S, tip[0] + 8 * S, tip[1] + 8 * S],
+        tip = _on_circle(cx, cy, r, ang)
+        d.line([(cx, cy), tip], fill=TERRACOTTA, width=max(3, int(S * 1.9)))
+        d.ellipse([tip[0] - 11 * S, tip[1] - 11 * S, tip[0] + 11 * S, tip[1] + 11 * S],
                   fill=TERRACOTTA)
-    d.ellipse([cx - 6 * S, cy - 6 * S, cx + 6 * S, cy + 6 * S], fill=INK)
+    d.ellipse([cx - 7 * S, cy - 7 * S, cx + 7 * S, cy + 7 * S], fill=INK)
 
 
 # ─── THE FOUR ELEMENTS ────────────────────────────────────────────────────────
@@ -778,8 +857,8 @@ def _render_land(result, client_name, tier, reading_date, output_path):
     year stands, which element is loudest, and the living signs that came."""
     S = 2
     signs = result.get("signs") or []
-    canvas_w = 1220
-    canvas_h = 1215 + (205 if signs else 0)
+    canvas_w = 1280
+    canvas_h = 1320 + (205 if signs else 0)
     img, d, box = _frame_and_cloth(canvas_w, canvas_h, S)
 
     _header(d, S, canvas_w, box, tier or "the land",
@@ -791,16 +870,27 @@ def _render_land(result, client_name, tier, reading_date, output_path):
 
     # ── where the year stands ────────────────────────────────────────────────
     season = result.get("season") or {}
+    if result.get("prev_sabbat") and "prev_sabbat" not in season:
+        season = dict(season, prev_sabbat=result["prev_sabbat"])
     season_line = result.get("season_line") or season.get("season_line", "")
     _tracked(d, "WHERE THE YEAR STANDS", cx, y, _font(14 * S), INK_FAINT, 5 * S)
     r = 150 * S
-    _wheel(d, cx, y + 92 * S + r, r, season, reading_date, S)
+    _wheel(d, cx, y + 92 * S + r, r, season, reading_date, S,
+           birth_md=result.get("birth_md"))
     y += 92 * S + r * 2 + 52 * S
     if season_line:
         for ln in _wrap(d, season_line, _font(17 * S), (box[2] - box[0]) - 120 * S):
             _centre(d, ln, cx, y, _font(17 * S), INK_DIM)
             y += 26 * S
-    y += 26 * S
+    legend = ["the sun's four stations are ringed, the four fire festivals filled",
+              "the shaded half is the dark of the year, the pale band its daylight"]
+    if result.get("birth_md"):
+        legend.append("the open mark is where you came into the year")
+    y += 8 * S
+    for ln in legend:
+        _centre(d, ln, cx, y, _font(14 * S), INK_FAINT)
+        y += 22 * S
+    y += 30 * S
 
     # ── which element is loudest ─────────────────────────────────────────────
     drawn = (result.get("element") or "").lower()

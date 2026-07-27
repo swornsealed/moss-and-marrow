@@ -32,6 +32,7 @@ from email.mime.image import MIMEImage
 
 try:
     from record_image import generate_record_image
+    from guide_image import generate_guide_image
     SPREAD_IMAGE_AVAILABLE = True
 except ImportError:
     SPREAD_IMAGE_AVAILABLE = False
@@ -2492,6 +2493,8 @@ def deliver_pending(state, system_prompt, access_token=None):
 
             # Generate the keepsake record: the cast (rune tiers) or the land.
             img_bytes = None
+            guide_bytes = None
+            guide_name = "reading_your_record.jpg"
             img_filename = "your_record.jpg"
             tier_gets_image = delivery["tier"] in TIERS_WITH_SPREAD_IMAGE
             if SPREAD_IMAGE_AVAILABLE and tier_gets_image and draw_result_of(delivery):
@@ -2509,6 +2512,17 @@ def deliver_pending(state, system_prompt, access_token=None):
                     print(f"  Record image: {len(img_bytes):,} bytes")
                 except Exception as img_err:
                     print(f"  WARNING: record image failed: {img_err}")
+
+                # The companion: what the record is and how it was arrived at.
+                # A record nobody can read is decoration, so this ships with
+                # every reading. It never blocks the delivery.
+                try:
+                    guide_bytes = generate_guide_image(
+                        draw_result_of(delivery), tier=delivery["tier"])
+                    guide_name = f"reading_the_{kind}_a_short_guide.jpg"
+                    print(f"  Guide image:  {len(guide_bytes):,} bytes")
+                except Exception as guide_err:
+                    print(f"  WARNING: guide image failed: {guide_err}")
             elif not tier_gets_image:
                 print(f"  {delivery['tier']} tier — text-only delivery (no record image)")
 
@@ -2528,6 +2542,7 @@ def deliver_pending(state, system_prompt, access_token=None):
                 image_filename=img_filename,
                 audio_bytes=audio_bytes,
                 audio_filename=audio_filename,
+                extra_images=[(guide_bytes, guide_name)] if guide_bytes else None,
             )
             delivery["status"]  = "sent"
             delivery["sent_at"] = now.isoformat()
@@ -2540,6 +2555,7 @@ def deliver_pending(state, system_prompt, access_token=None):
             sent += 1
             extras = []
             if img_bytes:   extras.append("record image")
+            if guide_bytes: extras.append("guide")
             if audio_bytes: extras.append("audio")
             print(f"  Sent to {delivery['customer_email']} ({', '.join(extras) or 'text only'})")
             # Close the Etsy loop: mark the receipt shipped so the buyer sees

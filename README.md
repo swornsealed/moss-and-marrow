@@ -15,6 +15,9 @@ Shop email: mossandmarrowreadings@gmail.com.
   Record of the Cast (runes drawn as vector cuts, merkstave stones rendered
   upside down) or the Record of the Land. No image assets, no font dependency.
   Run `python record_image.py` to write samples to `_record_samples/`.
+- `guide_image.py` — the companion sheet that ships beside the record: what the
+  record is, how the draw was arrived at, and what merkstave or a root sign
+  means. Tier-aware, one per family. Run `python guide_image.py` for samples.
 - `moss-marrow-system-prompt.txt` — system prompt for the reading generation.
 - `.github/workflows/process-orders.yml` — the 30-minute Actions schedule (copy also at repo root;
   disabled on GitHub until secrets are configured).

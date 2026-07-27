@@ -31,8 +31,12 @@ except ImportError:                                    # pragma: no cover
 
 # ─── PALETTE (the brand, in ink) ──────────────────────────────────────────────
 
-GROUND       = ( 12,  26,  17)     # deep forest, the dark earth the stones lie on
-GROUND_EDGE  = (  8,  18,  11)     # vignette
+# The ground the stones lie on. A lighter moss than the site's deepest
+# forest: very dark backgrounds make small pale text halate, which is
+# harder to read than the raw contrast figure suggests. This is the same
+# family as the hero gradient on mossandmarrowreadings.com (#14301f).
+GROUND_TOP   = ( 32,  66,  44)     # moss in the light
+GROUND_BOT   = ( 18,  38,  25)     # moss in shadow
 STONE_FACE   = (232, 226, 210)     # pale river stone / cut rowan
 STONE_FACE_M = (206, 198, 180)     # a face-down stone reads slightly darker
 STONE_EDGE   = (150, 146, 128)
@@ -43,8 +47,8 @@ CREAM        = (248, 246, 239)     # titles and the rune names
 LABEL        = (222, 215, 199)     # small tracked caps. Warm neutral, never green:
                                    # mid-green text on this ground reads badly.
 LABEL_DIM    = (198, 192, 178)     # subtitles and secondary notes
-FOOT         = (172, 166, 152)     # footer lines
-RULE         = ( 74,  92,  70)
+FOOT         = (192, 186, 170)     # footer lines
+RULE         = ( 96, 118,  92)
 
 
 # ─── THE 24 RUNES AS CUT STROKES ──────────────────────────────────────────────
@@ -228,9 +232,9 @@ def _vignette(img):
     """Darken the edges so the stones sit in the middle of the ground."""
     w, h = img.size
     d = ImageDraw.Draw(img, "RGBA")
-    steps = 26
+    steps = 20
     for i in range(steps):
-        a = int(72 * (i / steps) ** 2.2)
+        a = int(52 * (i / steps) ** 2.2)
         d.rectangle([i * 3, i * 3, w - i * 3, h - i * 3], outline=(0, 0, 0, a), width=3)
 
 
@@ -270,8 +274,15 @@ def generate_record_image(
 
 
 def _frame(canvas_w, canvas_h, S):
-    img = Image.new("RGB", (canvas_w * S, canvas_h * S), GROUND)
-    return img, ImageDraw.Draw(img)
+    """Ground with a soft top-to-bottom falloff, echoing the site's hero."""
+    w, h = canvas_w * S, canvas_h * S
+    img = Image.new("RGB", (w, h), GROUND_BOT)
+    d = ImageDraw.Draw(img)
+    for y in range(h):
+        t = (y / h) ** 0.75
+        d.line([(0, y), (w, y)], fill=tuple(
+            int(a + (b - a) * t) for a, b in zip(GROUND_TOP, GROUND_BOT)))
+    return img, d
 
 
 def _header(d, S, canvas_w, kicker, title, subtitle):

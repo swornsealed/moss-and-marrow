@@ -930,6 +930,39 @@ _CANONICAL_PLAIN = (
 )
 
 
+def _strip_markdown(text: str) -> str:
+    """Take markdown out of a reading.
+
+    The model reaches for it despite the prompt: a "# The Whole Ground" title
+    at the top, ** for emphasis, dashed rules as dividers. A heading is
+    promoted to a movement marker, since that is what it was reaching for;
+    everything else is removed. Applied to every outbound body, so the plain
+    and HTML parts are both covered.
+    """
+    if not text:
+        return text
+    import re
+    out = []
+    for line in text.split("\n"):
+        ln = line.rstrip()
+        stripped = ln.strip()
+        if re.fullmatch(r"[-*_=]{3,}", stripped):        # a dashed rule
+            continue
+        m = re.match(r"^\s*#{1,6}\s+(.+?)\s*#*$", ln)    # "## Heading"
+        if m:
+            out.append("\u00a7" + m.group(1).strip())
+            continue
+        ln = re.sub(r"^\s*[-*+]\s+", "", ln)             # a bullet
+        ln = re.sub(r"^\s*\d+\.\s+", "", ln)            # a numbered item
+        ln = re.sub(r"\*\*(.+?)\*\*", r"\1", ln)         # bold
+        ln = re.sub(r"__(.+?)__", r"\1", ln)
+        ln = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"\1", ln)   # italic
+        ln = re.sub(r"`{1,3}", "", ln)                   # code ticks
+        ln = re.sub(r"\s--\s", ", ", ln)                 # a double hyphen used as punctuation
+        out.append(ln)
+    return "\n".join(out)
+
+
 def _strip_em_dashes(text: str) -> str:
     """
     Replace em/en dashes with plain punctuation so customer-facing copy never
@@ -1243,16 +1276,15 @@ def _reading_to_html(plain_text: str) -> str:
             "</td></tr>"
         )
 
+    # Paragraphs are separated by their own padding. A rule between every
+    # pair of them turns the reading into a ladder of lines; the movement
+    # headers are what divide it.
     para_rows = []
-    prev_kind = None
     for kind, text in clean_blocks:
         if kind == "h":
             para_rows.append(_header_row(text))
         else:
-            if prev_kind == "p":
-                para_rows.append(f'<tr><td><hr style="{RULE_STYLE}"></td></tr>')
             para_rows.append(f'<tr><td style="{PARA_STYLE}">{_linkify_html(_auto_bold(_html.escape(text)))}</td></tr>')
-        prev_kind = kind
 
     # Always render the canonical sign-off (Claude's version was stripped above)
     signoff_html = (
@@ -1578,7 +1610,7 @@ def send_email(to_address, subject, body,
     outer["To"]      = to_address
 
     # Normalise the plain-text sign-off.
-    plain_body = _sanitise_plain(body)
+    plain_body = _sanitise_plain(_strip_markdown(body))
 
     # Build alternative part (plain + html). The HTML styles the '§' movement
     # markers into gold headers; the plain-text part shows them as uppercase lines.

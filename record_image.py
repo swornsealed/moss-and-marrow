@@ -27,6 +27,7 @@ without going soft. The canvas renders at 2x and downsamples.
 """
 
 import hashlib
+import math
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
@@ -51,8 +52,12 @@ WOOD_DARK    = (198, 174, 140)     # grain
 WOOD_EDGE    = (168, 140, 105)     # the sawn edge
 WOOD_M       = (206, 190, 168)     # a lot fallen merkstave sits cooler
 WOOD_M_DARK  = (182, 164, 140)
-OCHRE        = (158,  58,  40)     # the reddened cut
-OCHRE_M      = (120,  52,  44)     # duller in a merkstave cut
+OCHRE        = (162,  58,  38)     # the reddened cut
+OCHRE_DEEP   = (108,  34,  24)     # pigment pooled at the bottom of the V
+OCHRE_M      = (128,  58,  46)     # duller in a merkstave cut
+OCHRE_M_DEEP = ( 86,  38,  32)
+CUT_SHADE    = (176, 148, 112)     # the wall of the groove facing the light
+CUT_LIP      = (236, 219, 191)     # the wall catching it
 INK          = ( 44,  40,  32)     # type on the cloth
 INK_DIM      = ( 98,  92,  78)
 INK_FAINT    = (132, 125, 108)
@@ -237,6 +242,55 @@ def _angle_for(rune: str, position: str) -> float:
     return (h[0] / 255.0) * 16.0 - 8.0          # -8 to +8 degrees
 
 
+# ─── THE CUT ──────────────────────────────────────────────────────────────────
+
+def _cut_poly(p1, p2, width, taper=0.17):
+    """A knife cut is not a stroke of even width. The blade enters at a point,
+    opens to full width through the middle, and lifts to a point again, so the
+    cut is a long lens rather than a rectangle."""
+    (x1, y1), (x2, y2) = p1, p2
+    dx, dy = x2 - x1, y2 - y1
+    length = math.hypot(dx, dy)
+    if length == 0:
+        return None
+    ux, uy = dx / length, dy / length
+    px, py = -uy, ux                     # perpendicular to the cut
+    hw = width / 2.0
+    t = length * taper
+    b = (x1 + ux * t, y1 + uy * t)       # shoulder near the entry
+    c = (x2 - ux * t, y2 - uy * t)       # shoulder near the lift
+    return [(x1, y1),
+            (b[0] + px * hw, b[1] + py * hw),
+            (c[0] + px * hw, c[1] + py * hw),
+            (x2, y2),
+            (c[0] - px * hw, c[1] - py * hw),
+            (b[0] - px * hw, b[1] - py * hw)]
+
+
+def _carve(d, p1, p2, width, cut, deep, S):
+    """Gouge one cut and redden it.
+
+    A V-groove lit from the upper left is shaded on its upper-left wall and
+    lit on its lower-right one, which is the reverse of a raised line: that
+    inversion is what makes the mark read as cut INTO the wood rather than
+    drawn on top of it. The pigment sits deepest along the centre.
+    """
+    o = max(1.0, width * 0.11)
+    shade = _cut_poly((p1[0] - o, p1[1] - o), (p2[0] - o, p2[1] - o), width * 1.16)
+    lip   = _cut_poly((p1[0] + o, p1[1] + o), (p2[0] + o, p2[1] + o), width * 1.11)
+    body  = _cut_poly(p1, p2, width)
+    core  = _cut_poly(p1, p2, width * 0.40, taper=0.30)
+    if not body:
+        return
+    if shade:
+        d.polygon(shade, fill=CUT_SHADE)
+    if lip:
+        d.polygon(lip, fill=CUT_LIP)
+    d.polygon(body, fill=cut)
+    if core:
+        d.polygon(core, fill=deep)
+
+
 # ─── THE LOT ──────────────────────────────────────────────────────────────────
 
 def _lot_tile(rune, merkstave, w, h, S):
@@ -268,23 +322,19 @@ def _lot_tile(rune, merkstave, w, h, S):
     d.line([(x0 + r, y0 + 2), (x1 - r, y0 + 2)], fill=WOOD_EDGE, width=max(1, S // 2))
     d.line([(x0 + r, y1 - 2), (x1 - r, y1 - 2)], fill=WOOD_EDGE, width=max(1, S // 2))
 
-    # the cut itself
+    # the cuts themselves, gouged and reddened
     strokes = RUNE_STROKES.get(rune)
     if strokes:
         rw, rh = w * 0.46, h * 0.54
         cx, cy = pad + w / 2, pad + h / 2
         sx, sy = cx - rw / 2, cy - rh / 2
-        width = max(3, int(w * 0.055))
+        width = max(4, int(w * 0.062))
+        deep = OCHRE_M_DEEP if merkstave else OCHRE_DEEP
         for (ax, ay), (bx, by) in strokes:
             if merkstave:
                 ax, ay, bx, by = 1 - ax, 1 - ay, 1 - bx, 1 - by
-            p1 = (sx + ax * rw, sy + ay * rh)
-            p2 = (sx + bx * rw, sy + by * rh)
-            # a groove: shadow on one side, ochre in the channel
-            d.line([(p1[0] + width * 0.22, p1[1] + width * 0.22),
-                    (p2[0] + width * 0.22, p2[1] + width * 0.22)],
-                   fill=WOOD_EDGE, width=width, joint="curve")
-            d.line([p1, p2], fill=cut, width=width, joint="curve")
+            _carve(d, (sx + ax * rw, sy + ay * rh),
+                      (sx + bx * rw, sy + by * rh), width, cut, deep, S)
     return tile
 
 
@@ -322,12 +372,28 @@ def _frame_and_cloth(canvas_w, canvas_h, S, inset=52):
                                 sh.filter(ImageFilter.GaussianBlur(7 * S)))
     d = ImageDraw.Draw(img)
     d.rounded_rectangle(box, radius=6 * S, fill=CLOTH, outline=CLOTH_EDGE, width=S)
+    img = img.convert("RGBA")
 
-    # a faint weave, so the cloth reads as cloth
-    for y in range(int(box[1]) + 3 * S, int(box[3]) - 2 * S, 5 * S):
-        d.line([(box[0] + 2 * S, y), (box[2] - 2 * S, y)], fill=CLOTH_SHADE, width=1)
-    for x in range(int(box[0]) + 3 * S, int(box[2]) - 2 * S, 5 * S):
-        d.line([(x, box[1] + 2 * S), (x, box[3] - 2 * S)], fill=CLOTH_SHADE, width=1)
+    # Grain, not graph paper. Ruled lines in both directions read as a grid;
+    # cloth is irregular, so the texture is soft noise with a few slub threads
+    # pulled across it at shallow angles.
+    cw, ch = int(box[2] - box[0]), int(box[3] - box[1])
+    if cw > 0 and ch > 0:
+        noise = Image.effect_noise((cw, ch), 14).filter(ImageFilter.GaussianBlur(0.7))
+        grain = Image.new("RGBA", (cw, ch), CLOTH_SHADE + (255,))
+        grain.putalpha(noise.point(lambda v: int(abs(v - 128) * 0.30)))
+        img.alpha_composite(grain, (int(box[0]), int(box[1])))
+
+        threads = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
+        td = ImageDraw.Draw(threads)
+        h = hashlib.sha256(b"moss-and-marrow-linen").digest() * 8
+        for i in range(0, 60):
+            y = int(h[i] / 255 * ch)
+            drop = (h[(i * 3) % len(h)] / 255 - 0.5) * 26 * S
+            td.line([(0, y), (cw, y + drop)],
+                    fill=CLOTH_SHADE + (26,), width=max(1, S // 2))
+        img.alpha_composite(threads.filter(ImageFilter.GaussianBlur(0.6)),
+                            (int(box[0]), int(box[1])))
 
     return img, ImageDraw.Draw(img), box
 

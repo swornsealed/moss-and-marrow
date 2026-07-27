@@ -1,60 +1,65 @@
 """
 record_image.py — Moss & Marrow
-Renders the keepsake image that ships with a reading: the Record of the Cast
+Renders the keepsake that ships with a reading: the Record of the Cast
 (rune tiers) or the Record of the Land (land tiers).
 
-The Sworn & Sealed counterpart (spread_image_generator.py) composites
-photographs of Rider-Waite cards. Moss & Marrow has no card art and needs
-none: runes are carved lines, so every glyph here is drawn as vector
-strokes on a normalised grid. That means
+The design follows what the sources actually describe. Tacitus (Germania,
+ch. 10, c. 98 AD) gives the canonical account of Germanic lot-casting: a
+branch is cut from a nut-bearing tree, sliced into strips, each marked with
+a sign, and the lots are thrown onto a white cloth before being lifted and
+read. So the object here is not a pebble on dark ground. It is a pale
+wooden lot on linen.
 
-  * no image assets to ship and no font dependency on the Actions runner
-    (the Runic unicode block is not reliably installed there),
-  * a merkstave stone can be drawn genuinely upside down, which is what
-    the client would see on the ground,
-  * the art scales to any size without going soft.
+Three further details from the record, all of them visual:
 
-The whole canvas is rendered at 2x and downsampled, so the diagonals come
-out smooth without any per-line anti-aliasing work.
+  * Runes are knife-cuts. Every stave is straight or diagonal because a
+    horizontal cut runs along the grain and splits the wood. The strokes
+    below are the cuts you would actually make, in order.
+  * Cuts were reddened. The sagas use rjoda, "to redden": carved runes were
+    filled with ochre so they could be read. The cuts here are rust-red.
+  * Lots are thrown, not placed. Each falls at its own angle, seeded from
+    the rune and its position so the same cast always lands the same way.
+
+Rune glyphs are drawn as vector strokes rather than set in a font: the
+Runic unicode block is not reliably installed on the Actions runner, a
+merkstave lot can be turned genuinely upside down, and the art scales
+without going soft. The canvas renders at 2x and downsamples.
 """
 
+import hashlib
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
 try:
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
     PILLOW_AVAILABLE = True
 except ImportError:                                    # pragma: no cover
     PILLOW_AVAILABLE = False
 
 
-# ─── PALETTE (the brand, in ink) ──────────────────────────────────────────────
+# ─── PALETTE ──────────────────────────────────────────────────────────────────
+# Forest frame (the brand), linen cloth (Tacitus), rowan wood, ochre cuts.
 
-# The ground the stones lie on. A lighter moss than the site's deepest
-# forest: very dark backgrounds make small pale text halate, which is
-# harder to read than the raw contrast figure suggests. This is the same
-# family as the hero gradient on mossandmarrowreadings.com (#14301f).
-GROUND_TOP   = ( 32,  66,  44)     # moss in the light
-GROUND_BOT   = ( 18,  38,  25)     # moss in shadow
-STONE_FACE   = (232, 226, 210)     # pale river stone / cut rowan
-STONE_FACE_M = (206, 198, 180)     # a face-down stone reads slightly darker
-STONE_EDGE   = (150, 146, 128)
-CARVED       = ( 38,  46,  32)     # the cut itself
-CARVED_M     = ( 96,  56,  38)     # merkstave cuts read warmer, like old blood in the groove
-PEACH        = (255, 185, 143)     # the shop's accent: brand mark and merkstave
-CREAM        = (248, 246, 239)     # titles and the rune names
-LABEL        = (222, 215, 199)     # small tracked caps. Warm neutral, never green:
-                                   # mid-green text on this ground reads badly.
-LABEL_DIM    = (198, 192, 178)     # subtitles and secondary notes
-FOOT         = (192, 186, 170)     # footer lines
-RULE         = ( 96, 118,  92)
+FRAME_TOP    = ( 26,  56,  38)     # moss in the light
+FRAME_BOT    = ( 14,  32,  21)     # moss in shadow
+CLOTH        = (238, 232, 216)     # the white cloth, warmed to linen
+CLOTH_SHADE  = (223, 215, 196)     # its weave and fold
+CLOTH_EDGE   = (206, 197, 175)
+WOOD         = (223, 203, 172)     # rowan, cut and planed
+WOOD_DARK    = (198, 174, 140)     # grain
+WOOD_EDGE    = (168, 140, 105)     # the sawn edge
+WOOD_M       = (206, 190, 168)     # a lot fallen merkstave sits cooler
+WOOD_M_DARK  = (182, 164, 140)
+OCHRE        = (158,  58,  40)     # the reddened cut
+OCHRE_M      = (120,  52,  44)     # duller in a merkstave cut
+INK          = ( 44,  40,  32)     # type on the cloth
+INK_DIM      = ( 98,  92,  78)
+INK_FAINT    = (132, 125, 108)
+PEACH        = (255, 185, 143)     # the brand accent, on the frame only
+CREAM        = (248, 246, 239)
+RULE         = (192, 182, 160)
 
-
-# ─── THE 24 RUNES AS CUT STROKES ──────────────────────────────────────────────
-# Unit coordinates: x 0 (left) to 1 (right), y 0 (top) to 1 (bottom).
-# Each rune is a list of ((x1, y1), (x2, y2)) segments — the cuts you would
-# make with a knife, in the order you would make them.
 
 RUNE_STROKES = {
     "Fehu":     [((0.30, 0.00), (0.30, 1.00)),
@@ -137,31 +142,40 @@ RUNE_STROKES = {
 }
 
 
+# ─── WHAT THE RUNES ARE NAMED FOR ─────────────────────────────────────────────
+# Every rune name is a concrete thing. Naming it under the lot is the lore
+# the keepsake is missing: Fehu is cattle, Perthro is the lot-cup itself.
+
+RUNE_LORE = {
+    "Fehu":     "cattle",        "Uruz":     "the aurochs",
+    "Thurisaz": "the thorn",     "Ansuz":    "the mouth",
+    "Raidho":   "the ride",      "Kenaz":    "the torch",
+    "Gebo":     "the gift",      "Wunjo":    "joy",
+    "Hagalaz":  "hail",          "Nauthiz":  "need",
+    "Isa":      "ice",           "Jera":     "the year",
+    "Eihwaz":   "the yew",       "Perthro":  "the lot-cup",
+    "Algiz":    "the elk",       "Sowilo":   "the sun",
+    "Tiwaz":    "the star",      "Berkano":  "the birch",
+    "Ehwaz":    "the horse",     "Mannaz":   "the human",
+    "Laguz":    "water",         "Ingwaz":   "the seed",
+    "Othala":   "the homestead", "Dagaz":    "daybreak",
+}
+
+
 # ─── LAYOUTS ──────────────────────────────────────────────────────────────────
-# (canvas w, h, stone w, stone h, [(cx, cy), ...]) at 1x. Positions are the
-# stone centres. Nine stones sit in three lines of three, as they were laid.
-
-MARGIN = 150          # keeps stones clear of the vignette at the canvas edge
-
+# Canvas, lot size, and lot centres at 1x. Lots are thrown, so the spacing
+# leaves room for each to sit at its own angle.
 
 def _layout(n: int):
     if n == 1:
-        return 1000, 1180, 300, 400, [(500, 600)]
+        return 980, 1180, 230, 330, [(490, 610)]
     if n == 9:
-        # Row pitch must clear the stone plus its label above (~34) and its
-        # name and merkstave line below (~85), or the rows collide.
-        w, h = 1320, 1700
-        sw, sh = 200, 265
-        xs = (340, 660, 980)
-        ys = (540, 930, 1320)
-        return w, h, sw, sh, [(x, y) for y in ys for x in xs]
-    # five (and any other count) — one line, read left to right
-    w, h = 1500, 1020
-    sw, sh = 200, 280
-    usable = w - 2 * MARGIN
-    step = usable / (n - 1) if n > 1 else 0
-    xs = [MARGIN + step * i for i in range(n)]
-    return w, h, sw, sh, [(x, 560) for x in xs]
+        return 1360, 1760, 180, 250, [
+            (x, y) for y in (570, 970, 1370) for x in (350, 680, 1010)]
+    w, h = 1580, 1060
+    margin = 210
+    step = (w - 2 * margin) / (n - 1) if n > 1 else 0
+    return w, h, 200, 285, [(margin + step * i, 585) for i in range(n)]
 
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -194,7 +208,6 @@ def _centre(d, text, cx, y, font, fill):
 
 
 def _tracked(d, text, cx, y, font, fill, track):
-    """Letterspaced small caps, the way the site sets its kickers."""
     widths = [_tw(d, ch, font) for ch in text]
     total = sum(widths) + track * (len(text) - 1)
     x = cx - total / 2
@@ -203,103 +216,7 @@ def _tracked(d, text, cx, y, font, fill, track):
         x += w + track
 
 
-def _draw_rune(d, name, cx, cy, w, h, colour, stroke, inverted=False):
-    """Cut a rune into a stone. Inverted draws it merkstave: the same stone,
-    fallen the other way up, which is exactly what the client would see."""
-    strokes = RUNE_STROKES.get(name)
-    if not strokes:
-        return
-    x0, y0 = cx - w / 2, cy - h / 2
-    for (ax, ay), (bx, by) in strokes:
-        if inverted:
-            ax, ay, bx, by = 1 - ax, 1 - ay, 1 - bx, 1 - by
-        d.line([(x0 + ax * w, y0 + ay * h), (x0 + bx * w, y0 + by * h)],
-               fill=colour, width=stroke, joint="curve")
-
-
-def _stone(d, cx, cy, w, h, merkstave):
-    """A pale stone with a soft edge: river pebble, or a cut of rowan."""
-    face = STONE_FACE_M if merkstave else STONE_FACE
-    box = [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2]
-    r = int(min(w, h) * 0.30)
-    # a whisper of shadow under the stone
-    d.rounded_rectangle([box[0] + 6, box[1] + 10, box[2] + 6, box[3] + 10],
-                        radius=r, fill=(6, 14, 9))
-    d.rounded_rectangle(box, radius=r, fill=face, outline=STONE_EDGE, width=2)
-
-
-def _vignette(img):
-    """Darken the edges so the stones sit in the middle of the ground."""
-    w, h = img.size
-    d = ImageDraw.Draw(img, "RGBA")
-    steps = 20
-    for i in range(steps):
-        a = int(52 * (i / steps) ** 2.2)
-        d.rectangle([i * 3, i * 3, w - i * 3, h - i * 3], outline=(0, 0, 0, a), width=3)
-
-
-# ─── THE RECORD ───────────────────────────────────────────────────────────────
-
-def generate_record_image(
-    tarot_result: dict,
-    reading_type: str = "",
-    client_name: str = "",
-    tier: str = "",
-    reading_date: str = "",
-    output_path: Optional[str] = None,
-) -> bytes:
-    """
-    Render the keepsake record for a reading.
-
-    Parameters
-    ----------
-    tarot_result : the dict stored on the delivery. A rune cast carries
-                   "runes"; a land reading carries "signs".
-    reading_type : love | career | clarity | season — shown in the subtitle
-    client_name  : shown under the title
-    tier         : shown as the record's kicker
-    reading_date : ISO date string, printed in the footer
-
-    Returns raw JPEG bytes for email attachment.
-    """
-    if not PILLOW_AVAILABLE:
-        raise ImportError("Pillow is required: pip install Pillow")
-
-    runes = (tarot_result or {}).get("runes") or []
-    if runes:
-        return _render_cast(runes, tarot_result, reading_type, client_name,
-                            tier, reading_date, output_path)
-    return _render_land(tarot_result or {}, reading_type, client_name,
-                        tier, reading_date, output_path)
-
-
-def _frame(canvas_w, canvas_h, S):
-    """Ground with a soft top-to-bottom falloff, echoing the site's hero."""
-    w, h = canvas_w * S, canvas_h * S
-    img = Image.new("RGB", (w, h), GROUND_BOT)
-    d = ImageDraw.Draw(img)
-    for y in range(h):
-        t = (y / h) ** 0.75
-        d.line([(0, y), (w, y)], fill=tuple(
-            int(a + (b - a) * t) for a, b in zip(GROUND_TOP, GROUND_BOT)))
-    return img, d
-
-
-def _header(d, S, canvas_w, kicker, title, subtitle):
-    _tracked(d, "MOSS & MARROW", canvas_w * S / 2, 54 * S,
-             _font(19 * S, bold=True), PEACH, 7 * S)
-    if kicker:
-        _tracked(d, kicker.upper(), canvas_w * S / 2, 104 * S,
-                 _font(15 * S), LABEL, 5 * S)
-    _centre(d, title, canvas_w * S / 2, 146 * S, _font(52 * S), CREAM)
-    if subtitle:
-        _centre(d, subtitle, canvas_w * S / 2, 218 * S, _font(23 * S), LABEL_DIM)
-    d.line([(canvas_w * S / 2 - 70 * S, 262 * S),
-            (canvas_w * S / 2 + 70 * S, 262 * S)], fill=RULE, width=2 * S)
-
-
 def _wrap(d, text, font, max_w):
-    """Break a footer line to fit the canvas; the season line runs long."""
     words, lines, cur = text.split(), [], ""
     for wd in words:
         trial = (cur + " " + wd).strip()
@@ -313,20 +230,135 @@ def _wrap(d, text, font, max_w):
     return lines
 
 
-def _footer(d, S, canvas_w, canvas_h, lines):
-    f = _font(17 * S)
+def _angle_for(rune: str, position: str) -> float:
+    """A thrown lot lands where it lands, but the same cast must always
+    render the same way, so the angle is hashed from the lot itself."""
+    h = hashlib.sha256(f"{rune}|{position}".encode()).digest()
+    return (h[0] / 255.0) * 16.0 - 8.0          # -8 to +8 degrees
+
+
+# ─── THE LOT ──────────────────────────────────────────────────────────────────
+
+def _lot_tile(rune, merkstave, w, h, S):
+    """One wooden lot with its rune cut and reddened, on a transparent tile
+    big enough to rotate inside."""
+    pad = int(max(w, h) * 0.35)
+    tw_, th_ = w + pad * 2, h + pad * 2
+    tile = Image.new("RGBA", (tw_, th_), (0, 0, 0, 0))
+    d = ImageDraw.Draw(tile)
+
+    face  = WOOD_M if merkstave else WOOD
+    grain = WOOD_M_DARK if merkstave else WOOD_DARK
+    cut   = OCHRE_M if merkstave else OCHRE
+
+    x0, y0, x1, y1 = pad, pad, pad + w, pad + h
+    r = int(w * 0.10)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=r,
+                        fill=face, outline=WOOD_EDGE, width=max(2, S))
+
+    # long grain down the strip, the way a sliced branch runs
+    gh = hashlib.sha256(rune.encode()).digest()
+    for i in range(5):
+        gx = x0 + int(w * (0.16 + 0.17 * i)) + (gh[i] % 7) - 3
+        top = y0 + int(h * 0.06) + (gh[i + 5] % 9)
+        bot = y1 - int(h * 0.06) - (gh[i + 10] % 9)
+        d.line([(gx, top), (gx, bot)], fill=grain, width=max(1, S // 2))
+
+    # the sawn ends read darker
+    d.line([(x0 + r, y0 + 2), (x1 - r, y0 + 2)], fill=WOOD_EDGE, width=max(1, S // 2))
+    d.line([(x0 + r, y1 - 2), (x1 - r, y1 - 2)], fill=WOOD_EDGE, width=max(1, S // 2))
+
+    # the cut itself
+    strokes = RUNE_STROKES.get(rune)
+    if strokes:
+        rw, rh = w * 0.46, h * 0.54
+        cx, cy = pad + w / 2, pad + h / 2
+        sx, sy = cx - rw / 2, cy - rh / 2
+        width = max(3, int(w * 0.055))
+        for (ax, ay), (bx, by) in strokes:
+            if merkstave:
+                ax, ay, bx, by = 1 - ax, 1 - ay, 1 - bx, 1 - by
+            p1 = (sx + ax * rw, sy + ay * rh)
+            p2 = (sx + bx * rw, sy + by * rh)
+            # a groove: shadow on one side, ochre in the channel
+            d.line([(p1[0] + width * 0.22, p1[1] + width * 0.22),
+                    (p2[0] + width * 0.22, p2[1] + width * 0.22)],
+                   fill=WOOD_EDGE, width=width, joint="curve")
+            d.line([p1, p2], fill=cut, width=width, joint="curve")
+    return tile
+
+
+def _place_lot(canvas, shadow, rune, merkstave, cx, cy, w, h, angle, S):
+    tile = _lot_tile(rune, merkstave, w, h, S)
+    rot = tile.rotate(angle, resample=Image.BICUBIC, expand=False)
+    px, py = int(cx - rot.width / 2), int(cy - rot.height / 2)
+
+    sil = Image.new("RGBA", rot.size, (0, 0, 0, 0))
+    sil.paste((0, 0, 0, 70), (0, 0), rot.split()[3])
+    shadow.alpha_composite(sil, (px + int(5 * S), py + int(9 * S)))
+    canvas.alpha_composite(rot, (px, py))
+
+
+# ─── THE CLOTH ────────────────────────────────────────────────────────────────
+
+def _frame_and_cloth(canvas_w, canvas_h, S, inset=52):
+    """Forest ground, then the cloth the lots were thrown onto."""
+    w, h = canvas_w * S, canvas_h * S
+    img = Image.new("RGB", (w, h), FRAME_BOT)
+    d = ImageDraw.Draw(img)
+    for y in range(h):
+        t = (y / h) ** 0.8
+        d.line([(0, y), (w, y)], fill=tuple(
+            int(a + (b - a) * t) for a, b in zip(FRAME_TOP, FRAME_BOT)))
+
+    i = inset * S
+    box = [i, i, w - i, h - i]
+
+    sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle(
+        [box[0] + 4 * S, box[1] + 8 * S, box[2] + 4 * S, box[3] + 8 * S],
+        radius=6 * S, fill=(0, 0, 0, 90))
+    img = Image.alpha_composite(img.convert("RGBA"),
+                                sh.filter(ImageFilter.GaussianBlur(7 * S)))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle(box, radius=6 * S, fill=CLOTH, outline=CLOTH_EDGE, width=S)
+
+    # a faint weave, so the cloth reads as cloth
+    for y in range(int(box[1]) + 3 * S, int(box[3]) - 2 * S, 5 * S):
+        d.line([(box[0] + 2 * S, y), (box[2] - 2 * S, y)], fill=CLOTH_SHADE, width=1)
+    for x in range(int(box[0]) + 3 * S, int(box[2]) - 2 * S, 5 * S):
+        d.line([(x, box[1] + 2 * S), (x, box[3] - 2 * S)], fill=CLOTH_SHADE, width=1)
+
+    return img, ImageDraw.Draw(img), box
+
+
+def _header(d, S, canvas_w, box, kicker, title, subtitle):
+    cx = canvas_w * S / 2
+    _tracked(d, "MOSS & MARROW", cx, box[1] + 34 * S,
+             _font(17 * S, bold=True), INK_DIM, 6 * S)
+    if kicker:
+        _tracked(d, kicker.upper(), cx, box[1] + 74 * S,
+                 _font(14 * S), INK_FAINT, 5 * S)
+    _centre(d, title, cx, box[1] + 112 * S, _font(50 * S), INK)
+    if subtitle:
+        _centre(d, subtitle, cx, box[1] + 180 * S, _font(22 * S), INK_DIM)
+    d.line([(cx - 62 * S, box[1] + 224 * S), (cx + 62 * S, box[1] + 224 * S)],
+           fill=RULE, width=2 * S)
+
+
+def _footer(d, S, canvas_w, box, lines):
+    f = _font(16 * S)
     wrapped = []
     for ln in lines:
-        wrapped.extend(_wrap(d, ln, f, (canvas_w - 120) * S))
-    y = canvas_h * S - (28 + 26 * len(wrapped)) * S
+        wrapped.extend(_wrap(d, ln, f, (box[2] - box[0]) - 80 * S))
+    y = box[3] - (26 + 24 * len(wrapped)) * S
     for ln in wrapped:
-        _centre(d, ln, canvas_w * S / 2, y, f, FOOT)
-        y += 26 * S
+        _centre(d, ln, canvas_w * S / 2, y, f, INK_FAINT)
+        y += 24 * S
 
 
-def _save(img, S, canvas_w, canvas_h, output_path):
-    _vignette(img)
-    img = img.resize((canvas_w, canvas_h), Image.LANCZOS)
+def _save(img, canvas_w, canvas_h, output_path):
+    img = img.convert("RGB").resize((canvas_w, canvas_h), Image.LANCZOS)
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=92, optimize=True)
     if output_path:
@@ -334,38 +366,75 @@ def _save(img, S, canvas_w, canvas_h, output_path):
     return buf.getvalue()
 
 
-def _render_cast(runes, result, reading_type, client_name, tier, reading_date,
-                 output_path):
-    S = 2                                     # supersample factor
-    n = len(runes)
-    canvas_w, canvas_h, sw, sh, spots = _layout(n)
-    img, d = _frame(canvas_w, canvas_h, S)
+# ─── PUBLIC API ───────────────────────────────────────────────────────────────
 
-    subtitle = f"cast for {client_name}" if client_name else ""
-    _header(d, S, canvas_w, tier or "The stones", "The Record of the Cast", subtitle)
+def generate_record_image(
+    tarot_result: dict,
+    reading_type: str = "",
+    client_name: str = "",
+    tier: str = "",
+    reading_date: str = "",
+    output_path: Optional[str] = None,
+) -> bytes:
+    """Render the keepsake record. A rune cast carries "runes"; a land
+    reading carries "signs". Returns raw JPEG bytes for email attachment."""
+    if not PILLOW_AVAILABLE:
+        raise ImportError("Pillow is required: pip install Pillow")
 
-    label_f    = _font(15 * S, bold=True)
-    name_f     = _font(24 * S)
-    orient_f   = _font(14 * S)
-    stroke     = max(3, int(sw * 0.055)) * S
+    runes = (tarot_result or {}).get("runes") or []
+    if runes:
+        return _render_cast(runes, tarot_result or {}, client_name, tier,
+                            reading_date, output_path)
+    return _render_land(tarot_result or {}, client_name, tier,
+                        reading_date, output_path)
 
+
+def _render_cast(runes, result, client_name, tier, reading_date, output_path):
+    S = 2
+    canvas_w, canvas_h, lw, lh, spots = _layout(len(runes))
+    img, d, box = _frame_and_cloth(canvas_w, canvas_h, S)
+
+    _header(d, S, canvas_w, box, tier or "the stones",
+            "The Record of the Cast",
+            f"cast for {client_name}" if client_name else "")
+
+    shadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    lots = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    for r, (cx, cy) in zip(runes, spots):
+        _place_lot(lots, shadow, r.get("rune", ""),
+                   r.get("orientation") == "merkstave",
+                   cx * S, cy * S, lw * S, lh * S,
+                   _angle_for(r.get("rune", ""), r.get("position", "")), S)
+
+    img = Image.alpha_composite(img.convert("RGBA"),
+                                shadow.filter(ImageFilter.GaussianBlur(6 * S)))
+    img = Image.alpha_composite(img, lots)
+    d = ImageDraw.Draw(img)
+
+    # With nine lots the name and its lore share one line, or the rows run
+    # into each other. With one or five there is room to stack them.
+    tight = len(runes) > 5
+    label_f = _font(14 * S, bold=True)
+    name_f  = _font(21 * S if tight else 23 * S)
+    lore_f  = _font(16 * S)
+    merk_f  = _font(13 * S)
     for r, (cx, cy) in zip(runes, spots):
         cxS, cyS = cx * S, cy * S
-        merk = r.get("orientation") == "merkstave"
-        _stone(d, cxS, cyS, sw * S, sh * S, merk)
-        _draw_rune(d, r.get("rune", ""), cxS, cyS,
-                   sw * S * 0.46, sh * S * 0.52,
-                   CARVED_M if merk else CARVED, stroke, inverted=merk)
-
-        # position label above, rune name and face below
-        pos = (r.get("position") or "").replace("-", " ")
-        _tracked(d, pos.upper(), cxS, cyS - sh * S / 2 - 34 * S,
-                 label_f, LABEL, 3 * S)
-        _centre(d, r.get("rune", ""), cxS, cyS + sh * S / 2 + 22 * S,
-                name_f, CREAM)
-        if merk:
-            _centre(d, "merkstave", cxS, cyS + sh * S / 2 + 56 * S,
-                    orient_f, PEACH)
+        name = r.get("rune", "")
+        lore = RUNE_LORE.get(name, "")
+        pos = (r.get("position") or "").replace("-", " ").upper()
+        _tracked(d, pos, cxS, cyS - (lh / 2 + 40) * S, label_f, INK_DIM, 3 * S)
+        if tight:
+            _centre(d, f"{name}  ·  {lore}" if lore else name,
+                    cxS, cyS + (lh / 2 + 22) * S, name_f, INK)
+            merk_y = lh / 2 + 50
+        else:
+            _centre(d, name, cxS, cyS + (lh / 2 + 22) * S, name_f, INK)
+            if lore:
+                _centre(d, lore, cxS, cyS + (lh / 2 + 56) * S, lore_f, INK_FAINT)
+            merk_y = lh / 2 + 82
+        if r.get("orientation") == "merkstave":
+            _centre(d, "merkstave", cxS, cyS + merk_y * S, merk_f, OCHRE)
 
     foot = []
     if result.get("birth_rune"):
@@ -377,44 +446,39 @@ def _render_cast(runes, result, reading_type, client_name, tier, reading_date,
     if reading_date:
         foot.append(f"cast {reading_date}")
     foot.append("Written by hand, at the edge of the woods.")
-    _footer(d, S, canvas_w, canvas_h, foot)
+    _footer(d, S, canvas_w, box, foot)
 
-    return _save(img, S, canvas_w, canvas_h, output_path)
+    return _save(img, canvas_w, canvas_h, output_path)
 
 
-def _render_land(result, reading_type, client_name, tier, reading_date,
-                 output_path):
-    """The land tiers' keepsake: season, element, and the signs that came."""
+def _render_land(result, client_name, tier, reading_date, output_path):
     S = 2
     signs = result.get("signs") or []
-    # Size the canvas to its content so the record never carries dead space.
     canvas_w = 1200
-    canvas_h = 330 + (130 if result.get("element") else 0) \
-                   + 112 * len(signs) + 140
-    img, d = _frame(canvas_w, canvas_h, S)
+    canvas_h = 320 + (128 if result.get("element") else 0) + 118 * len(signs) + 150
+    img, d, box = _frame_and_cloth(canvas_w, canvas_h, S)
 
-    subtitle = f"drawn for {client_name}" if client_name else ""
-    _header(d, S, canvas_w, tier or "The land", "The Record of the Land", subtitle)
+    _header(d, S, canvas_w, box, tier or "the land",
+            "The Record of the Land",
+            f"drawn for {client_name}" if client_name else "")
 
     cx = canvas_w * S / 2
-    y = 330 * S
+    y = box[1] + 268 * S
 
-    element = (result.get("element") or "").upper()
-    if element:
-        _tracked(d, "THE ELEMENT", cx, y, _font(15 * S), LABEL, 5 * S)
-        _centre(d, element, cx, y + 30 * S, _font(46 * S), PEACH)
-        y += 130 * S
+    if result.get("element"):
+        _tracked(d, "THE ELEMENT", cx, y, _font(14 * S), INK_FAINT, 5 * S)
+        _centre(d, result["element"].upper(), cx, y + 28 * S, _font(44 * S), OCHRE)
+        y += 128 * S
 
     if signs:
-        _tracked(d, "THE SIGNS", cx, y, _font(15 * S), LABEL, 5 * S)
-        y += 42 * S
+        _tracked(d, "THE SIGNS", cx, y, _font(14 * S), INK_FAINT, 5 * S)
+        y += 40 * S
         for s in signs:
-            kind = (s.get("kind") or "").upper()
-            _tracked(d, kind, cx, y, _font(13 * S), LABEL_DIM, 3 * S)
-            _centre(d, s.get("name", ""), cx, y + 22 * S, _font(34 * S), CREAM)
-            _centre(d, f"({s.get('element','')})", cx, y + 68 * S,
-                    _font(17 * S), LABEL_DIM)
-            y += 112 * S
+            _tracked(d, (s.get("kind") or "").upper(), cx, y,
+                     _font(12 * S), INK_FAINT, 3 * S)
+            _centre(d, s.get("name", ""), cx, y + 20 * S, _font(32 * S), INK)
+            _centre(d, s.get("element", ""), cx, y + 64 * S, _font(16 * S), INK_DIM)
+            y += 118 * S
 
     foot = []
     season = (result.get("season_line") or
@@ -424,15 +488,15 @@ def _render_land(result, reading_type, client_name, tier, reading_date,
     if reading_date:
         foot.append(f"read {reading_date}")
     foot.append("Written by hand, at the edge of the woods.")
-    _footer(d, S, canvas_w, canvas_h, foot)
+    _footer(d, S, canvas_w, box, foot)
 
-    return _save(img, S, canvas_w, canvas_h, output_path)
+    return _save(img, canvas_w, canvas_h, output_path)
 
 
 # ─── CLI TEST ─────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    from rune_engine import draw_reading as rune_draw
+    from rune_engine import draw_reading as rune_draw, RUNES
     from land_engine import draw_reading as land_draw
 
     out = Path(__file__).parent / "_record_samples"
@@ -440,21 +504,23 @@ if __name__ == "__main__":
 
     for tier in ("First Stone", "Rune Casting", "The Nine Worlds"):
         r = rune_draw("Marion", "03/14/1988", "clarity", tier,
-                      reading_date="2026-07-26")
-        b = generate_record_image(r, "clarity", "Marion", tier, "2026-07-26",
+                      reading_date="2026-07-27")
+        stored = {"runes": r["runes"], "birth_rune": r["birth_rune"],
+                  "season_line": r["season"]["season_line"]}
+        b = generate_record_image(stored, "clarity", "Marion", tier, "2026-07-27",
                                   output_path=out / f"{tier.replace(' ', '_')}.jpg")
         print(f"{tier}: {len(b):,} bytes")
 
     l = land_draw("Marion", "03/14/1988", "clarity", "Reading of the Land",
-                  reading_date="2026-07-26")
+                  reading_date="2026-07-27")
     lr = {"season_line": l["season"]["season_line"], "element": l["element"],
-          "signs": l["signs"], "name_number": l["name_number"]}
+          "signs": l["signs"]}
     b = generate_record_image(lr, "clarity", "Marion", "Reading of the Land",
-                              "2026-07-26", output_path=out / "Reading_of_the_Land.jpg")
+                              "2026-07-27", output_path=out / "Reading_of_the_Land.jpg")
     print(f"Reading of the Land: {len(b):,} bytes")
 
-    # every rune has strokes
-    from rune_engine import RUNES
     missing = [r[0] for r in RUNES if r[0] not in RUNE_STROKES]
     assert not missing, f"no strokes for: {missing}"
-    print(f"all {len(RUNE_STROKES)} runes have cut strokes")
+    no_lore = [r[0] for r in RUNES if r[0] not in RUNE_LORE]
+    assert not no_lore, f"no lore for: {no_lore}"
+    print(f"all {len(RUNE_STROKES)} runes have cuts and lore")

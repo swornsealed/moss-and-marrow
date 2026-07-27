@@ -31,11 +31,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 
 try:
-    from spread_image_generator import generate_spread_image
+    from record_image import generate_record_image
     SPREAD_IMAGE_AVAILABLE = True
 except ImportError:
     SPREAD_IMAGE_AVAILABLE = False
-    print("WARNING: spread_image_generator not available — readings will be text-only")
+    print("WARNING: record_image not available (Pillow missing) — readings will be text-only")
 
 # ─── MOSS & MARROW SAFETY GUARD ────────────────────────────────────────────────
 # FINAL SAFETY: this duplicate can never run against Sworn & Sealed.
@@ -84,7 +84,9 @@ TURNING_YEAR_DROPS = 8
 RUNE_TIERS = ("First Stone", "Rune Casting", "The Nine Worlds")
 
 # Deliverable sets. Add tiers only when the corresponding deliverable is built.
-TIERS_WITH_SPREAD_IMAGE = set()                    # future: a "record of the land" keepsake image
+TIERS_WITH_SPREAD_IMAGE = {"First Sign", "Reading of the Land", "The Whole Ground",
+                           "The Turning Year", "First Stone", "Rune Casting",
+                           "The Nine Worlds"}      # the keepsake record (record_image.py)
 TIERS_WITH_AUDIO        = {"The Whole Ground"}     # Willow's spoken note (own ElevenLabs voice)
 TIERS_WITH_RITUAL       = {"The Whole Ground"}     # the outdoor observance closer
 TIERS_WITH_NATAL        = set()                    # never: Moss & Marrow casts no charts
@@ -1552,7 +1554,7 @@ def send_email(to_address, subject, body,
                extra_images: list = None):
     """
     Send an HTML email with plain-text fallback, optionally with a JPEG image attachment.
-    image_bytes — raw JPEG bytes from generate_spread_image(); omit for text-only.
+    image_bytes — raw JPEG bytes from generate_record_image(); omit for text-only.
     extra_images — optional list of (bytes, filename) for additional image attachments
     for any additional keepsake images.
     """
@@ -2137,6 +2139,7 @@ def ingest_new_submissions(state, access_token):
                         "runes":           tarot["runes"],
                         "birth_rune":      tarot["birth_rune"],
                         "merkstave_count": tarot["merkstave_count"],
+                        "season_line":     tarot["season"]["season_line"],
                         "name_number":     tarot["name_number"],
                     }
                     if tier in RUNE_TIERS else
@@ -2441,24 +2444,27 @@ def deliver_pending(state, system_prompt, access_token=None):
                 except Exception as e:
                     print(f"  ERROR sending audio-failure alert: {e}")
 
-            # Generate the record image — only for tiers in TIERS_WITH_SPREAD_IMAGE (none at launch).
+            # Generate the keepsake record: the cast (rune tiers) or the land.
             img_bytes = None
-            img_filename = "your_spread.jpg"
+            img_filename = "your_record.jpg"
             tier_gets_image = delivery["tier"] in TIERS_WITH_SPREAD_IMAGE
             if SPREAD_IMAGE_AVAILABLE and tier_gets_image and delivery.get("tarot_result"):
                 try:
-                    img_bytes = generate_spread_image(
+                    img_bytes = generate_record_image(
                         tarot_result=delivery["tarot_result"],
                         reading_type=delivery["reading_type"],
                         client_name=delivery["customer_name"],
+                        tier=delivery["tier"],
+                        reading_date=(delivery.get("scheduled_for") or "")[:10],
                     )
                     safe_name = delivery["customer_name"].lower().replace(" ", "_")
-                    img_filename = f"spread_{safe_name}.jpg"
-                    print(f"  Spread image: {len(img_bytes):,} bytes")
+                    kind = "cast" if delivery["tier"] in RUNE_TIERS else "land"
+                    img_filename = f"record_of_the_{kind}_{safe_name}.jpg"
+                    print(f"  Record image: {len(img_bytes):,} bytes")
                 except Exception as img_err:
-                    print(f"  WARNING: spread image failed: {img_err}")
+                    print(f"  WARNING: record image failed: {img_err}")
             elif not tier_gets_image:
-                print(f"  {delivery['tier']} tier — text-only delivery (no spread image)")
+                print(f"  {delivery['tier']} tier — text-only delivery (no record image)")
 
             # (Sworn & Sealed's natal keepsakes and Grand Ceremony photo dispatch
             #  have no Moss & Marrow counterpart and were removed. Every tier

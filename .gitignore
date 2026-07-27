@@ -6,3 +6,4 @@ __pycache__/
 *.pyc
 # NOTE: state.json is deliberately NOT ignored — the Actions workflow commits
 # it every run (delivery queue + rotating Etsy refresh token).
+_record_samples/

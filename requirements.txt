@@ -4,3 +4,4 @@ google-api-python-client>=2.126.0
 # pyswisseph and timezonefinder are only needed if a natal-chart tier is
 # ever added (Sworn & Sealed's Celestial Blueprint). Moss & Marrow's tiers
 # do not cast charts, so they are left out.
+Pillow>=10.0.0

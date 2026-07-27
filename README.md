@@ -11,6 +11,10 @@ Shop email: mossandmarrowreadings@gmail.com.
 - `process_orders.py` — order pipeline, fully adapted from Sworn & Sealed (see [SETUP.md](SETUP.md)).
 - `land_engine.py` — deterministic season/element/sign engine (the tarot engine's nature
   counterpart, same `draw_reading` interface). Tested; run `python land_engine.py`.
+- `record_image.py` — the keepsake record that ships with every reading: the
+  Record of the Cast (runes drawn as vector cuts, merkstave stones rendered
+  upside down) or the Record of the Land. No image assets, no font dependency.
+  Run `python record_image.py` to write samples to `_record_samples/`.
 - `moss-marrow-system-prompt.txt` — system prompt for the reading generation.
 - `.github/workflows/process-orders.yml` — the 30-minute Actions schedule (copy also at repo root;
   disabled on GitHub until secrets are configured).

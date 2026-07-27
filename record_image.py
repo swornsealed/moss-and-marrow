@@ -38,13 +38,13 @@ STONE_FACE_M = (206, 198, 180)     # a face-down stone reads slightly darker
 STONE_EDGE   = (150, 146, 128)
 CARVED       = ( 38,  46,  32)     # the cut itself
 CARVED_M     = ( 96,  56,  38)     # merkstave cuts read warmer, like old blood in the groove
-LEAF         = (143, 184, 131)
-LEAF_PALE    = (200, 230, 180)
-PEACH        = (255, 185, 143)
-CREAM        = (248, 246, 239)
-CREAM_DIM    = (186, 196, 172)
-CREAM_FAINT  = (128, 142, 118)
-RULE         = ( 46,  74,  48)
+PEACH        = (255, 185, 143)     # the shop's accent: brand mark and merkstave
+CREAM        = (248, 246, 239)     # titles and the rune names
+LABEL        = (222, 215, 199)     # small tracked caps. Warm neutral, never green:
+                                   # mid-green text on this ground reads badly.
+LABEL_DIM    = (198, 192, 178)     # subtitles and secondary notes
+FOOT         = (172, 166, 152)     # footer lines
+RULE         = ( 74,  92,  70)
 
 
 # ─── THE 24 RUNES AS CUT STROKES ──────────────────────────────────────────────
@@ -279,10 +279,10 @@ def _header(d, S, canvas_w, kicker, title, subtitle):
              _font(19 * S, bold=True), PEACH, 7 * S)
     if kicker:
         _tracked(d, kicker.upper(), canvas_w * S / 2, 104 * S,
-                 _font(15 * S), LEAF, 5 * S)
+                 _font(15 * S), LABEL, 5 * S)
     _centre(d, title, canvas_w * S / 2, 146 * S, _font(52 * S), CREAM)
     if subtitle:
-        _centre(d, subtitle, canvas_w * S / 2, 218 * S, _font(23 * S), CREAM_DIM)
+        _centre(d, subtitle, canvas_w * S / 2, 218 * S, _font(23 * S), LABEL_DIM)
     d.line([(canvas_w * S / 2 - 70 * S, 262 * S),
             (canvas_w * S / 2 + 70 * S, 262 * S)], fill=RULE, width=2 * S)
 
@@ -309,7 +309,7 @@ def _footer(d, S, canvas_w, canvas_h, lines):
         wrapped.extend(_wrap(d, ln, f, (canvas_w - 120) * S))
     y = canvas_h * S - (28 + 26 * len(wrapped)) * S
     for ln in wrapped:
-        _centre(d, ln, canvas_w * S / 2, y, f, CREAM_FAINT)
+        _centre(d, ln, canvas_w * S / 2, y, f, FOOT)
         y += 26 * S
 
 
@@ -349,7 +349,7 @@ def _render_cast(runes, result, reading_type, client_name, tier, reading_date,
         # position label above, rune name and face below
         pos = (r.get("position") or "").replace("-", " ")
         _tracked(d, pos.upper(), cxS, cyS - sh * S / 2 - 34 * S,
-                 label_f, LEAF, 3 * S)
+                 label_f, LABEL, 3 * S)
         _centre(d, r.get("rune", ""), cxS, cyS + sh * S / 2 + 22 * S,
                 name_f, CREAM)
         if merk:
@@ -390,19 +390,19 @@ def _render_land(result, reading_type, client_name, tier, reading_date,
 
     element = (result.get("element") or "").upper()
     if element:
-        _tracked(d, "THE ELEMENT", cx, y, _font(15 * S), LEAF, 5 * S)
+        _tracked(d, "THE ELEMENT", cx, y, _font(15 * S), LABEL, 5 * S)
         _centre(d, element, cx, y + 30 * S, _font(46 * S), PEACH)
         y += 130 * S
 
     if signs:
-        _tracked(d, "THE SIGNS", cx, y, _font(15 * S), LEAF, 5 * S)
+        _tracked(d, "THE SIGNS", cx, y, _font(15 * S), LABEL, 5 * S)
         y += 42 * S
         for s in signs:
             kind = (s.get("kind") or "").upper()
-            _tracked(d, kind, cx, y, _font(13 * S), CREAM_FAINT, 3 * S)
+            _tracked(d, kind, cx, y, _font(13 * S), LABEL_DIM, 3 * S)
             _centre(d, s.get("name", ""), cx, y + 22 * S, _font(34 * S), CREAM)
             _centre(d, f"({s.get('element','')})", cx, y + 68 * S,
-                    _font(17 * S), LEAF_PALE)
+                    _font(17 * S), LABEL_DIM)
             y += 112 * S
 
     foot = []

@@ -53,20 +53,38 @@ WOOD_EDGE    = (168, 140, 105)     # the sawn edge
 WOOD_M       = (206, 190, 168)     # a lot fallen merkstave sits cooler
 WOOD_M_DARK  = (182, 164, 140)
 OCHRE        = (162,  58,  38)     # the reddened cut
+TERRACOTTA   = (176,  66,  38)     # the accent on the cloth
 OCHRE_DEEP   = (108,  34,  24)     # pigment pooled at the bottom of the V
 OCHRE_M      = (128,  58,  46)     # duller in a merkstave cut
 OCHRE_M_DEEP = ( 86,  38,  32)
 CUT_SHADE    = (176, 148, 112)     # the wall of the groove facing the light
 CUT_LIP      = (236, 219, 191)     # the wall catching it
-INK          = ( 44,  40,  32)     # type on the cloth
-INK_DIM      = ( 98,  92,  78)
-INK_FAINT    = (132, 125, 108)
+# Type on the cloth. Warm brown-grey melts into linen, so the lettering
+# uses the shop's own greens, which carry real contrast on cream, with
+# terracotta reserved for whatever the reading actually drew.
+INK          = ( 18,  42,  28)     # titles and names: deep forest
+INK_DIM      = ( 60,  92,  60)     # subtitles and secondary lines
+INK_FAINT    = ( 84, 114,  80)     # tracked caps and the footer: moss
 PEACH        = (255, 185, 143)     # the brand accent, on the frame only
 CREAM        = (248, 246, 239)
 RULE         = (192, 182, 160)
-INK_LINE     = ( 92,  84,  70)     # drawn line: the wheel, the specimens
-INK_FAINT_LN = (176, 167, 148)     # the parts of the year not yet reached
-SAGE         = (110, 130,  98)     # living things
+INK_LINE     = ( 60,  92,  60)     # drawn line: the wheel, the specimens
+INK_FAINT_LN = (170, 186, 160)     # the quiet inner ring
+SAGE         = ( 96, 124,  90)     # living things, when no element applies
+
+# The four elements, each in its own colour. Muted and natural so they sit
+# inside the brand, but far enough apart to be told at a glance.
+ELEMENT_COLOUR = {
+    "earth": (132,  98,  48),      # loam
+    "water": ( 48,  98, 110),      # deep water
+    "fire":  (176,  66,  38),      # terracotta
+    "air":   ( 98, 128, 116),      # moving air over moss
+}
+
+
+def _tint(col, t):
+    """Fade a colour toward the cloth: for the elements not drawn."""
+    return tuple(int(c + (CLOTH[i] - c) * t) for i, c in enumerate(col))
 
 
 RUNE_STROKES = {
@@ -438,10 +456,14 @@ def _save(img, canvas_w, canvas_h, output_path):
 # reading: it is read off the date, so this wheel is the same for everyone
 # reading on the same day.
 
+# Each sabbat carries an element, the same ones the engine weighs, so the
+# wheel can be read in colour: the stretch of year a sabbat opens is drawn
+# in that element.
 SABBAT_DATES = [
-    ("Yule",    12, 21), ("Imbolc",   2,  1), ("Ostara",  3, 20),
-    ("Beltane",  5,  1), ("Litha",    6, 21), ("Lammas",  8,  1),
-    ("Mabon",    9, 22), ("Samhain", 11,  1),
+    ("Yule",    12, 21, "earth"), ("Imbolc",   2,  1, "water"),
+    ("Ostara",   3, 20, "air"),   ("Beltane",  5,  1, "fire"),
+    ("Litha",    6, 21, "fire"),  ("Lammas",   8,  1, "earth"),
+    ("Mabon",    9, 22, "earth"), ("Samhain", 11,  1, "water"),
 ]
 
 
@@ -461,33 +483,57 @@ def _on_circle(cx, cy, r, deg):
 
 def _wheel(d, cx, cy, r, season, reading_date, S):
     from datetime import date as _date
-    # the ring
-    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=INK_FAINT_LN, width=max(2, S))
-    d.ellipse([cx - r * 0.80, cy - r * 0.80, cx + r * 0.80, cy + r * 0.80],
+
+    # the ring, drawn as eight stretches in the colour of the element each
+    # sabbat opens, so the year reads round rather than as a bare circle
+    n = len(SABBAT_DATES)
+    for i, (name, mo, dy, el) in enumerate(SABBAT_DATES):
+        a0 = _year_angle(mo, dy)
+        _n2, mo2, dy2, _el2 = SABBAT_DATES[(i + 1) % n]
+        a1 = _year_angle(mo2, dy2)
+        if a1 <= a0:
+            a1 += 360
+        d.arc([cx - r, cy - r, cx + r, cy + r], a0, a1,
+              fill=ELEMENT_COLOUR.get(el, INK_LINE), width=max(3, int(S * 2.4)))
+
+    d.ellipse([cx - r * 0.78, cy - r * 0.78, cx + r * 0.78, cy + r * 0.78],
               outline=INK_FAINT_LN, width=max(1, S // 2))
 
-    name_f = _font(15 * S)
-    for name, mo, dy in SABBAT_DATES:
+    name_f = _font(15 * S, bold=True)
+    for name, mo, dy, el in SABBAT_DATES:
         ang = _year_angle(mo, dy)
-        p_in  = _on_circle(cx, cy, r * 0.80, ang)
-        p_out = _on_circle(cx, cy, r, ang)
-        d.line([p_in, p_out], fill=INK_LINE, width=max(2, S))
-        lx, ly = _on_circle(cx, cy, r * 1.17, ang)
-        w = _tw(d, name, name_f)
-        d.text((lx - w / 2, ly - 11 * S), name, font=name_f, fill=INK_DIM)
+        col = ELEMENT_COLOUR.get(el, INK_LINE)
+        d.line([_on_circle(cx, cy, r * 0.78, ang), _on_circle(cx, cy, r, ang)],
+               fill=col, width=max(2, int(S * 1.7)))
+        gx, gy = _on_circle(cx, cy, r * 0.63, ang)
+        _element_mark(d, el, gx, gy, 21 * S, col, S, weight=max(1, int(S * 1.2)))
+        lx, ly = _on_circle(cx, cy, r * 1.20, ang)
+        d.text((lx - _tw(d, name, name_f) / 2, ly - 11 * S), name,
+               font=name_f, fill=col)
 
-    # where the year stands
+    # how far into the present stretch the year has come
     try:
         today = _date.fromisoformat(reading_date) if reading_date else None
     except ValueError:
         today = None
+    prev_name = (season or {}).get("prev_sabbat")
+    prev = next((x for x in SABBAT_DATES if x[0] == prev_name), None)
+    if today and prev:
+        a0 = _year_angle(prev[1], prev[2])
+        a1 = _year_angle(today.month, today.day, today.year)
+        if a1 <= a0:
+            a1 += 360
+        d.arc([cx - r * 0.90, cy - r * 0.90, cx + r * 0.90, cy + r * 0.90],
+              a0, a1, fill=ELEMENT_COLOUR.get(prev[3], TERRACOTTA),
+              width=max(5, int(S * 4.5)))
+
     if today:
         ang = _year_angle(today.month, today.day, today.year)
-        tip = _on_circle(cx, cy, r * 0.80, ang)
-        d.line([(cx, cy), tip], fill=OCHRE, width=max(3, int(S * 1.6)))
-        d.ellipse([tip[0] - 7 * S, tip[1] - 7 * S, tip[0] + 7 * S, tip[1] + 7 * S],
-                  fill=OCHRE)
-    d.ellipse([cx - 5 * S, cy - 5 * S, cx + 5 * S, cy + 5 * S], fill=INK_LINE)
+        tip = _on_circle(cx, cy, r * 0.78, ang)
+        d.line([(cx, cy), tip], fill=TERRACOTTA, width=max(3, int(S * 1.8)))
+        d.ellipse([tip[0] - 8 * S, tip[1] - 8 * S, tip[0] + 8 * S, tip[1] + 8 * S],
+                  fill=TERRACOTTA)
+    d.ellipse([cx - 6 * S, cy - 6 * S, cx + 6 * S, cy + 6 * S], fill=INK)
 
 
 # ─── THE FOUR ELEMENTS ────────────────────────────────────────────────────────
@@ -630,12 +676,14 @@ _FORMS = {"sprig": _draw_sprig, "cushion": _draw_cushion, "feather": _draw_feath
 
 
 def _draw_sign_form(d, sign, cx, cy, sz, S):
-    form = _form_for(sign)
-    fn = _FORMS.get(form, _draw_sprig)
+    """Each sign is drawn in the colour of its own element, so the record
+    shows at a glance which of them answer the element that was drawn."""
+    col = ELEMENT_COLOUR.get(sign.get("element", ""), SAGE)
+    fn = _FORMS.get(_form_for(sign), _draw_sprig)
     if fn is _draw_sprig:
-        fn(d, cx, cy, sz, SAGE, S, seed=sign.get("name", ""))
+        fn(d, cx, cy, sz, col, S, seed=sign.get("name", ""))
     else:
-        fn(d, cx, cy, sz, SAGE, S)
+        fn(d, cx, cy, sz, col, S)
 
 
 # ─── PUBLIC API ───────────────────────────────────────────────────────────────
@@ -763,11 +811,13 @@ def _render_land(result, client_name, tier, reading_date, output_path):
         x0 = cx - gap * (len(order) - 1) / 2
         for i, el in enumerate(order):
             on = el == drawn
-            _element_mark(d, el, x0 + i * gap, y + 22 * S, (46 if on else 34) * S,
-                          OCHRE if on else INK_FAINT_LN, S,
-                          weight=max(2, int(S * (2.4 if on else 1.2))))
-            _centre(d, el, x0 + i * gap, y + 56 * S,
-                    _font((17 if on else 15) * S), INK if on else INK_FAINT)
+            base = ELEMENT_COLOUR.get(el, INK_LINE)
+            _element_mark(d, el, x0 + i * gap, y + 22 * S, (48 if on else 34) * S,
+                          base if on else _tint(base, 0.58), S,
+                          weight=max(2, int(S * (2.6 if on else 1.2))))
+            _centre(d, el, x0 + i * gap, y + 58 * S,
+                    _font((18 if on else 15) * S, bold=on),
+                    base if on else _tint(base, 0.42))
         y += 110 * S
 
     # ── the living signs ─────────────────────────────────────────────────────
@@ -784,7 +834,8 @@ def _render_land(result, client_name, tier, reading_date, output_path):
             for j, ln in enumerate(_wrap(d, sg.get("name", ""), _font(24 * S), gap - 24 * S)):
                 _centre(d, ln, sx, y + (108 + j * 30) * S, _font(24 * S), INK)
             _element_mark(d, sg.get("element", "earth"), sx, y + 158 * S,
-                          22 * S, INK_DIM, S, weight=max(1, S))
+                          24 * S, ELEMENT_COLOUR.get(sg.get("element", ""), INK_DIM),
+                          S, weight=max(2, int(S * 1.3)))
 
     foot = []
     if reading_date:

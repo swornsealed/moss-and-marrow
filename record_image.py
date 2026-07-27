@@ -64,6 +64,9 @@ INK_FAINT    = (132, 125, 108)
 PEACH        = (255, 185, 143)     # the brand accent, on the frame only
 CREAM        = (248, 246, 239)
 RULE         = (192, 182, 160)
+INK_LINE     = ( 92,  84,  70)     # drawn line: the wheel, the specimens
+INK_FAINT_LN = (176, 167, 148)     # the parts of the year not yet reached
+SAGE         = (110, 130,  98)     # living things
 
 
 RUNE_STROKES = {
@@ -429,6 +432,212 @@ def _save(img, canvas_w, canvas_h, output_path):
     return buf.getvalue()
 
 
+# ─── THE WHEEL OF THE YEAR ────────────────────────────────────────────────────
+# The eight sabbats sit at their real calendar positions, Yule at the top,
+# the year running clockwise. Where the year stands is not chosen for a
+# reading: it is read off the date, so this wheel is the same for everyone
+# reading on the same day.
+
+SABBAT_DATES = [
+    ("Yule",    12, 21), ("Imbolc",   2,  1), ("Ostara",  3, 20),
+    ("Beltane",  5,  1), ("Litha",    6, 21), ("Lammas",  8,  1),
+    ("Mabon",    9, 22), ("Samhain", 11,  1),
+]
+
+
+def _year_angle(month, day, ref_year=2026):
+    """Degrees clockwise from the top, Yule at 12 o'clock."""
+    from datetime import date
+    d = date(ref_year, month, day)
+    yule = date(ref_year, 12, 21).timetuple().tm_yday
+    frac = ((d.timetuple().tm_yday - yule) % 365) / 365.0
+    return -90.0 + frac * 360.0
+
+
+def _on_circle(cx, cy, r, deg):
+    a = math.radians(deg)
+    return cx + r * math.cos(a), cy + r * math.sin(a)
+
+
+def _wheel(d, cx, cy, r, season, reading_date, S):
+    from datetime import date as _date
+    # the ring
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=INK_FAINT_LN, width=max(2, S))
+    d.ellipse([cx - r * 0.80, cy - r * 0.80, cx + r * 0.80, cy + r * 0.80],
+              outline=INK_FAINT_LN, width=max(1, S // 2))
+
+    name_f = _font(15 * S)
+    for name, mo, dy in SABBAT_DATES:
+        ang = _year_angle(mo, dy)
+        p_in  = _on_circle(cx, cy, r * 0.80, ang)
+        p_out = _on_circle(cx, cy, r, ang)
+        d.line([p_in, p_out], fill=INK_LINE, width=max(2, S))
+        lx, ly = _on_circle(cx, cy, r * 1.17, ang)
+        w = _tw(d, name, name_f)
+        d.text((lx - w / 2, ly - 11 * S), name, font=name_f, fill=INK_DIM)
+
+    # where the year stands
+    try:
+        today = _date.fromisoformat(reading_date) if reading_date else None
+    except ValueError:
+        today = None
+    if today:
+        ang = _year_angle(today.month, today.day, today.year)
+        tip = _on_circle(cx, cy, r * 0.80, ang)
+        d.line([(cx, cy), tip], fill=OCHRE, width=max(3, int(S * 1.6)))
+        d.ellipse([tip[0] - 7 * S, tip[1] - 7 * S, tip[0] + 7 * S, tip[1] + 7 * S],
+                  fill=OCHRE)
+    d.ellipse([cx - 5 * S, cy - 5 * S, cx + 5 * S, cy + 5 * S], fill=INK_LINE)
+
+
+# ─── THE FOUR ELEMENTS ────────────────────────────────────────────────────────
+# The alchemical marks: fire a triangle, water inverted, air and earth the
+# same two crossed. The one the reading drew is inked; the rest stay faint.
+
+def _element_mark(d, kind, cx, cy, size, colour, S, weight=None):
+    h = size * 0.86
+    w = weight or max(2, int(S * 1.4))
+    up   = [(cx, cy - h / 2), (cx + size / 2, cy + h / 2), (cx - size / 2, cy + h / 2)]
+    down = [(cx, cy + h / 2), (cx + size / 2, cy - h / 2), (cx - size / 2, cy - h / 2)]
+    if kind in ("fire", "air"):
+        d.line(up + [up[0]], fill=colour, width=w, joint="curve")
+        if kind == "air":
+            d.line([(cx - size * 0.26, cy + h * 0.10), (cx + size * 0.26, cy + h * 0.10)],
+                   fill=colour, width=w)
+    else:
+        d.line(down + [down[0]], fill=colour, width=w, joint="curve")
+        if kind == "earth":
+            d.line([(cx - size * 0.26, cy - h * 0.10), (cx + size * 0.26, cy - h * 0.10)],
+                   fill=colour, width=w)
+
+
+# ─── THE LIVING SIGNS ─────────────────────────────────────────────────────────
+# A field record draws the specimen, not a photograph of it. Each sign gets
+# the form its kind actually leaves behind: a sprig for what grows, a feather
+# for what flies, a track for what walks, and so on.
+
+SIGN_FORM = {
+    "Moss": "cushion", "Lichen": "cushion",
+    "Raven": "feather", "Barred owl": "feather", "Steller's jay": "feather",
+    "Red-tailed hawk": "feather", "Great blue heron": "feather",
+    "Salmon": "fish",
+    "Black-tailed deer": "hoof", "Coyote": "track", "Douglas squirrel": "track",
+    "Black bear": "track", "Beaver": "track",
+    "Banana slug": "slug",
+}
+
+
+def _form_for(sign):
+    name = sign.get("name", "")
+    if name in SIGN_FORM:
+        return SIGN_FORM[name]
+    return "sprig" if sign.get("kind") in ("plant", "root") else "track"
+
+
+def _draw_sprig(d, cx, cy, sz, col, S, seed=""):
+    """A sprig, varied by species so two plants in one record never draw
+    identically: the leaf pairs, their sweep and their length all shift."""
+    w = max(2, int(S * 1.3))
+    h = hashlib.sha256(seed.encode()).digest() if seed else bytes(8)
+    pairs = 4 + h[0] % 3                       # 4 to 6 pairs
+    sweep = 0.22 + (h[1] / 255) * 0.16         # how far the leaves reach
+    lift  = 0.10 + (h[2] / 255) * 0.12         # how steeply they rise
+    d.line([(cx, cy + sz * 0.48), (cx, cy - sz * 0.48)], fill=col, width=w)
+    span = 0.76
+    for i in range(pairs):
+        t = -0.36 + span * (i / max(1, pairs - 1))
+        y = cy + sz * t
+        reach = sweep * (1.0 - 0.35 * (i / max(1, pairs - 1)))
+        for sgn in (-1, 1):
+            tip = (cx + sgn * sz * reach, y - sz * lift)
+            d.line([(cx, y), tip], fill=col, width=w)
+            d.line([tip, (cx + sgn * sz * reach * 0.42, y - sz * lift * 0.30)],
+                   fill=col, width=w)
+
+
+def _draw_cushion(d, cx, cy, sz, col, S):
+    w = max(2, int(S * 1.2))
+    d.arc([cx - sz * 0.46, cy - sz * 0.10, cx + sz * 0.46, cy + sz * 0.46],
+          180, 360, fill=col, width=w)
+    for i in range(5):
+        x = cx - sz * 0.30 + i * sz * 0.15
+        d.line([(x, cy + sz * 0.16), (x + sz * 0.03, cy - sz * 0.22)],
+               fill=col, width=max(1, S))
+
+
+def _draw_feather(d, cx, cy, sz, col, S):
+    w = max(2, int(S * 1.3))
+    top, bot = cy - sz * 0.50, cy + sz * 0.50
+    quill = bot - sz * 0.16                       # bare shaft at the base
+    # a shaft with a slight curve to it
+    pts = []
+    for i in range(13):
+        t = i / 12.0
+        pts.append((cx + sz * 0.07 * math.sin(t * math.pi) , top + (bot - top) * t))
+    d.line(pts, fill=col, width=w, joint="curve")
+    for i in range(9):
+        t = i / 8.0
+        y = top + (quill - top) * (0.04 + 0.94 * t)
+        sx = cx + sz * 0.07 * math.sin(((y - top) / (bot - top)) * math.pi)
+        # widest through the belly, closing to nothing at the tip
+        spread = sz * 0.34 * math.sin(min(1.0, 0.12 + t * 0.95) * math.pi) ** 0.7
+        for sgn in (-1, 1):
+            d.line([(sx, y), (sx + sgn * spread, y + sz * 0.13)],
+                   fill=col, width=max(1, S))
+
+
+def _draw_fish(d, cx, cy, sz, col, S):
+    w = max(2, int(S * 1.2))
+    d.arc([cx - sz * 0.44, cy - sz * 0.26, cx + sz * 0.30, cy + sz * 0.26],
+          210, 330, fill=col, width=w)
+    d.arc([cx - sz * 0.44, cy - sz * 0.26, cx + sz * 0.30, cy + sz * 0.26],
+          30, 150, fill=col, width=w)
+    d.line([(cx + sz * 0.28, cy), (cx + sz * 0.46, cy - sz * 0.18)], fill=col, width=w)
+    d.line([(cx + sz * 0.28, cy), (cx + sz * 0.46, cy + sz * 0.18)], fill=col, width=w)
+    d.line([(cx + sz * 0.46, cy - sz * 0.18), (cx + sz * 0.46, cy + sz * 0.18)],
+           fill=col, width=w)
+
+
+def _draw_track(d, cx, cy, sz, col, S):
+    d.ellipse([cx - sz * 0.17, cy - sz * 0.02, cx + sz * 0.17, cy + sz * 0.30], fill=col)
+    for ox, oy in ((-0.27, -0.20), (-0.10, -0.31), (0.10, -0.31), (0.27, -0.20)):
+        d.ellipse([cx + sz * ox - sz * 0.075, cy + sz * oy - sz * 0.075,
+                   cx + sz * ox + sz * 0.075, cy + sz * oy + sz * 0.075], fill=col)
+
+
+def _draw_hoof(d, cx, cy, sz, col, S):
+    for sgn in (-1, 1):
+        d.polygon([(cx + sgn * sz * 0.05, cy - sz * 0.30),
+                   (cx + sgn * sz * 0.22, cy + sz * 0.06),
+                   (cx + sgn * sz * 0.12, cy + sz * 0.30),
+                   (cx + sgn * sz * 0.03, cy + sz * 0.10)], fill=col)
+
+
+def _draw_slug(d, cx, cy, sz, col, S):
+    w = max(2, int(S * 1.2))
+    d.arc([cx - sz * 0.42, cy - sz * 0.18, cx + sz * 0.34, cy + sz * 0.30],
+          180, 360, fill=col, width=w)
+    d.line([(cx - sz * 0.42, cy + sz * 0.06), (cx + sz * 0.34, cy + sz * 0.06)],
+           fill=col, width=w)
+    for dx in (0.30, 0.38):
+        d.line([(cx + sz * dx, cy - sz * 0.10), (cx + sz * (dx + 0.10), cy - sz * 0.30)],
+               fill=col, width=max(1, S))
+
+
+_FORMS = {"sprig": _draw_sprig, "cushion": _draw_cushion, "feather": _draw_feather,
+          "fish": _draw_fish, "track": _draw_track, "hoof": _draw_hoof,
+          "slug": _draw_slug}
+
+
+def _draw_sign_form(d, sign, cx, cy, sz, S):
+    form = _form_for(sign)
+    fn = _FORMS.get(form, _draw_sprig)
+    if fn is _draw_sprig:
+        fn(d, cx, cy, sz, SAGE, S, seed=sign.get("name", ""))
+    else:
+        fn(d, cx, cy, sz, SAGE, S)
+
+
 # ─── PUBLIC API ───────────────────────────────────────────────────────────────
 
 def generate_record_image(
@@ -516,10 +725,12 @@ def _render_cast(runes, result, client_name, tier, reading_date, output_path):
 
 
 def _render_land(result, client_name, tier, reading_date, output_path):
+    """The three threads Willow reads, drawn rather than listed: where the
+    year stands, which element is loudest, and the living signs that came."""
     S = 2
     signs = result.get("signs") or []
-    canvas_w = 1200
-    canvas_h = 320 + (128 if result.get("element") else 0) + 118 * len(signs) + 150
+    canvas_w = 1220
+    canvas_h = 1215 + (205 if signs else 0)
     img, d, box = _frame_and_cloth(canvas_w, canvas_h, S)
 
     _header(d, S, canvas_w, box, tier or "the land",
@@ -527,28 +738,55 @@ def _render_land(result, client_name, tier, reading_date, output_path):
             f"drawn for {client_name}" if client_name else "")
 
     cx = canvas_w * S / 2
-    y = box[1] + 268 * S
+    y = box[1] + 272 * S
 
-    if result.get("element"):
-        _tracked(d, "THE ELEMENT", cx, y, _font(14 * S), INK_FAINT, 5 * S)
-        _centre(d, result["element"].upper(), cx, y + 28 * S, _font(44 * S), OCHRE)
-        y += 128 * S
+    # ── where the year stands ────────────────────────────────────────────────
+    season = result.get("season") or {}
+    season_line = result.get("season_line") or season.get("season_line", "")
+    _tracked(d, "WHERE THE YEAR STANDS", cx, y, _font(14 * S), INK_FAINT, 5 * S)
+    r = 150 * S
+    _wheel(d, cx, y + 92 * S + r, r, season, reading_date, S)
+    y += 92 * S + r * 2 + 52 * S
+    if season_line:
+        for ln in _wrap(d, season_line, _font(17 * S), (box[2] - box[0]) - 120 * S):
+            _centre(d, ln, cx, y, _font(17 * S), INK_DIM)
+            y += 26 * S
+    y += 26 * S
 
+    # ── which element is loudest ─────────────────────────────────────────────
+    drawn = (result.get("element") or "").lower()
+    if drawn:
+        _tracked(d, "WHICH ELEMENT IS LOUDEST", cx, y, _font(14 * S), INK_FAINT, 5 * S)
+        y += 52 * S
+        order = ["earth", "water", "fire", "air"]
+        gap = 116 * S
+        x0 = cx - gap * (len(order) - 1) / 2
+        for i, el in enumerate(order):
+            on = el == drawn
+            _element_mark(d, el, x0 + i * gap, y + 22 * S, (46 if on else 34) * S,
+                          OCHRE if on else INK_FAINT_LN, S,
+                          weight=max(2, int(S * (2.4 if on else 1.2))))
+            _centre(d, el, x0 + i * gap, y + 56 * S,
+                    _font((17 if on else 15) * S), INK if on else INK_FAINT)
+        y += 110 * S
+
+    # ── the living signs ─────────────────────────────────────────────────────
     if signs:
-        _tracked(d, "THE SIGNS", cx, y, _font(14 * S), INK_FAINT, 5 * S)
-        y += 40 * S
-        for s in signs:
-            _tracked(d, (s.get("kind") or "").upper(), cx, y,
-                     _font(12 * S), INK_FAINT, 3 * S)
-            _centre(d, s.get("name", ""), cx, y + 20 * S, _font(32 * S), INK)
-            _centre(d, s.get("element", ""), cx, y + 64 * S, _font(16 * S), INK_DIM)
-            y += 118 * S
+        _tracked(d, "WHAT KEEPS FINDING YOU", cx, y, _font(14 * S), INK_FAINT, 5 * S)
+        y += 54 * S
+        gap = min(300, int((canvas_w - 220) / max(1, len(signs)))) * S
+        x0 = cx - gap * (len(signs) - 1) / 2
+        for i, sg in enumerate(signs):
+            sx = x0 + i * gap
+            _draw_sign_form(d, sg, sx, y + 34 * S, 76 * S, S)
+            kind = "root" if sg.get("kind") == "root" else sg.get("kind", "")
+            _tracked(d, kind.upper(), sx, y + 86 * S, _font(12 * S), INK_FAINT, 3 * S)
+            for j, ln in enumerate(_wrap(d, sg.get("name", ""), _font(24 * S), gap - 24 * S)):
+                _centre(d, ln, sx, y + (108 + j * 30) * S, _font(24 * S), INK)
+            _element_mark(d, sg.get("element", "earth"), sx, y + 158 * S,
+                          22 * S, INK_DIM, S, weight=max(1, S))
 
     foot = []
-    season = (result.get("season_line") or
-              (result.get("season") or {}).get("season_line", ""))
-    if season:
-        foot.append(season)
     if reading_date:
         foot.append(f"read {reading_date}")
     foot.append("Written by hand, at the edge of the woods.")

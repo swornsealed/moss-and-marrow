@@ -432,23 +432,24 @@ def _save(img, canvas_w, canvas_h, output_path):
 # ─── PUBLIC API ───────────────────────────────────────────────────────────────
 
 def generate_record_image(
-    tarot_result: dict,
+    draw_result: dict,
     reading_type: str = "",
     client_name: str = "",
     tier: str = "",
     reading_date: str = "",
     output_path: Optional[str] = None,
 ) -> bytes:
-    """Render the keepsake record. A rune cast carries "runes"; a land
-    reading carries "signs". Returns raw JPEG bytes for email attachment."""
+    """Render the keepsake record from a draw. A rune cast carries "runes";
+    a land reading carries "signs". Moss & Marrow draws no cards.
+    Returns raw JPEG bytes for email attachment."""
     if not PILLOW_AVAILABLE:
         raise ImportError("Pillow is required: pip install Pillow")
 
-    runes = (tarot_result or {}).get("runes") or []
+    runes = (draw_result or {}).get("runes") or []
     if runes:
-        return _render_cast(runes, tarot_result or {}, client_name, tier,
+        return _render_cast(runes, draw_result or {}, client_name, tier,
                             reading_date, output_path)
-    return _render_land(tarot_result or {}, client_name, tier,
+    return _render_land(draw_result or {}, client_name, tier,
                         reading_date, output_path)
 
 

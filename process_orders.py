@@ -240,6 +240,16 @@ def save_state(state):
         json.dump(state, f, indent=2, default=str)
 
 
+def draw_result_of(delivery):
+    """The draw stored on a delivery.
+
+    Moss & Marrow draws no cards, so the key is "draw_result". Deliveries
+    queued before that rename carry the Sworn & Sealed name instead, and are
+    still in flight in state.json, so both are accepted.
+    """
+    return delivery.get("draw_result") or delivery.get("tarot_result")
+
+
 # ─── GOOGLE SHEETS INTAKE READER ────────────────────────────────────────────────
 
 def get_sheet_rows(sheet_id, tab_name):
@@ -280,7 +290,7 @@ def mark_row_processed(sheet_id, tab_name, row_index):
     ).execute()
 
 
-def build_user_message(fields, reading_type, tier, tarot, reading_date=""):
+def build_user_message(fields, reading_type, tier, draw, reading_date=""):
     """
     Construct the Claude intake block.
     For career/clarity (poi_is_client=True) POI = client themselves.
@@ -311,7 +321,7 @@ def build_user_message(fields, reading_type, tier, tarot, reading_date=""):
     # Every tier draws the land (land_engine.draw_reading), so all tiers get the
     # full formatted_block: LAND_DRAWN signs alongside the season position, the
     # loudest element, and the name number, so the reading weaves all three threads.
-    land_block = tarot["formatted_block"]
+    land_block = draw["formatted_block"]
 
     block = (
         f"CLIENT: {customer_name}\n"
@@ -1063,7 +1073,7 @@ def _plain_movement_headers(text: str) -> str:
     return re.sub(r"(?m)^[ \t]*§[ \t]*(.+?)[ \t]*$", lambda m: m.group(1).upper(), text)
 
 
-def _append_guided_ritual(reading: str, tier: str, tarot_result: dict) -> str:
+def _append_guided_ritual(reading: str, tier: str, draw_result: dict) -> str:
     """
     Close flagship readings with a short outdoor observance — the client-side
     step that involves the buyer. Inactive until a tier is added to
@@ -1076,7 +1086,7 @@ def _append_guided_ritual(reading: str, tier: str, tarot_result: dict) -> str:
     """
     if not reading or tier not in TIERS_WITH_RITUAL:
         return reading
-    signs = (tarot_result or {}).get("signs") or []
+    signs = (draw_result or {}).get("signs") or []
     named = (signs[0].get("name") if signs else "") or ""
     if not named:
         return reading
@@ -2097,7 +2107,7 @@ def ingest_new_submissions(state, access_token):
             tz           = os.environ.get("TIMEZONE", "America/Los_Angeles").strip()
             reading_date = datetime.now(ZoneInfo(tz)).strftime("%Y-%m-%d")
             _engine = rune_draw_reading if tier in RUNE_TIERS else draw_reading
-            tarot = _engine(
+            draw = _engine(
                 poi_name=poi_name or customer_name,
                 poi_dob=poi_dob,
                 reading_type=effective_type,
@@ -2107,7 +2117,7 @@ def ingest_new_submissions(state, access_token):
             )
 
             reading_type_final = effective_type
-            user_message = build_user_message(fields, reading_type_final, tier, tarot, reading_date=reading_date)
+            user_message = build_user_message(fields, reading_type_final, tier, draw, reading_date=reading_date)
 
             # (Moss & Marrow casts no natal charts and elects no ceremony dates:
             #  the Sworn & Sealed natal / Grand Ceremony ingest steps have no
@@ -2128,26 +2138,26 @@ def ingest_new_submissions(state, access_token):
                 "tier":           tier,
                 "reading_type":   reading_type_final,
                 "user_message":   user_message,
-                "tarot_block":    tarot["formatted_block"],
+                "draw_block":     draw["formatted_block"],
                 "test":           is_test,
                 # The Turning Year: which of the eight drops this entry is, plus
                 # the intake fields so later turns can be redrawn for their date.
                 "turn_number":    1 if tier == "The Turning Year" else None,
                 "intake_fields":  dict(fields) if tier == "The Turning Year" else None,
-                "tarot_result": (
+                "draw_result": (
                     {
-                        "runes":           tarot["runes"],
-                        "birth_rune":      tarot["birth_rune"],
-                        "merkstave_count": tarot["merkstave_count"],
-                        "season_line":     tarot["season"]["season_line"],
-                        "name_number":     tarot["name_number"],
+                        "runes":           draw["runes"],
+                        "birth_rune":      draw["birth_rune"],
+                        "merkstave_count": draw["merkstave_count"],
+                        "season_line":     draw["season"]["season_line"],
+                        "name_number":     draw["name_number"],
                     }
                     if tier in RUNE_TIERS else
                     {
-                        "season_line": tarot["season"]["season_line"],
-                        "element":     tarot["element"],
-                        "signs":       tarot["signs"],
-                        "name_number": tarot["name_number"],
+                        "season_line": draw["season"]["season_line"],
+                        "element":     draw["element"],
+                        "signs":       draw["signs"],
+                        "name_number": draw["name_number"],
                     }
                 ),
             })
@@ -2270,11 +2280,11 @@ def _queue_next_turning_year_drop(state, delivery):
         "tier":           "The Turning Year",
         "reading_type":   "season",
         "user_message":   user_message,
-        "tarot_block":    draw["formatted_block"],
+        "draw_block":     draw["formatted_block"],
         "test":           False,
         "turn_number":    turn + 1,
         "intake_fields":  fields,
-        "tarot_result": {
+        "draw_result": {
             "season_line": draw["season"]["season_line"],
             "element":     draw["element"],
             "signs":       draw["signs"],
@@ -2392,7 +2402,7 @@ def deliver_pending(state, system_prompt, access_token=None):
 
             # Close flagship readings with the outdoor observance, naming the
             # client's own drawn sign (inactive until TIERS_WITH_RITUAL is set).
-            reading = _append_guided_ritual(reading, delivery["tier"], delivery.get("tarot_result"))
+            reading = _append_guided_ritual(reading, delivery["tier"], draw_result_of(delivery))
 
             # Contemplation in the audio is carried by breath, not by verbal "um"
             # fillers, so strip any residual ones the model still slips in.
@@ -2448,10 +2458,10 @@ def deliver_pending(state, system_prompt, access_token=None):
             img_bytes = None
             img_filename = "your_record.jpg"
             tier_gets_image = delivery["tier"] in TIERS_WITH_SPREAD_IMAGE
-            if SPREAD_IMAGE_AVAILABLE and tier_gets_image and delivery.get("tarot_result"):
+            if SPREAD_IMAGE_AVAILABLE and tier_gets_image and draw_result_of(delivery):
                 try:
                     img_bytes = generate_record_image(
-                        tarot_result=delivery["tarot_result"],
+                        draw_result=draw_result_of(delivery),
                         reading_type=delivery["reading_type"],
                         client_name=delivery["customer_name"],
                         tier=delivery["tier"],

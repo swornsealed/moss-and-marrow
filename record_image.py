@@ -374,26 +374,23 @@ def _frame_and_cloth(canvas_w, canvas_h, S, inset=52):
     d.rounded_rectangle(box, radius=6 * S, fill=CLOTH, outline=CLOTH_EDGE, width=S)
     img = img.convert("RGBA")
 
-    # Grain, not graph paper. Ruled lines in both directions read as a grid;
-    # cloth is irregular, so the texture is soft noise with a few slub threads
-    # pulled across it at shallow angles.
+    # Cloth, with no lines in it at all. Ruled lines in either direction read
+    # as graph paper, and drawn threads read as banding, so the texture is
+    # made of noise only: a fine grain for the fibre, and a broad mottle
+    # underneath for the unevenness of cloth that has been laid down.
     cw, ch = int(box[2] - box[0]), int(box[3] - box[1])
     if cw > 0 and ch > 0:
-        noise = Image.effect_noise((cw, ch), 14).filter(ImageFilter.GaussianBlur(0.7))
-        grain = Image.new("RGBA", (cw, ch), CLOTH_SHADE + (255,))
-        grain.putalpha(noise.point(lambda v: int(abs(v - 128) * 0.30)))
-        img.alpha_composite(grain, (int(box[0]), int(box[1])))
+        mottle = (Image.effect_noise((cw, ch), 44)
+                  .filter(ImageFilter.GaussianBlur(26 * S)))
+        broad = Image.new("RGBA", (cw, ch), CLOTH_SHADE + (255,))
+        broad.putalpha(mottle.point(lambda v: min(54, int(abs(v - 128) * 2.6))))
+        img.alpha_composite(broad, (int(box[0]), int(box[1])))
 
-        threads = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
-        td = ImageDraw.Draw(threads)
-        h = hashlib.sha256(b"moss-and-marrow-linen").digest() * 8
-        for i in range(0, 60):
-            y = int(h[i] / 255 * ch)
-            drop = (h[(i * 3) % len(h)] / 255 - 0.5) * 26 * S
-            td.line([(0, y), (cw, y + drop)],
-                    fill=CLOTH_SHADE + (26,), width=max(1, S // 2))
-        img.alpha_composite(threads.filter(ImageFilter.GaussianBlur(0.6)),
-                            (int(box[0]), int(box[1])))
+        fibre = (Image.effect_noise((cw, ch), 18)
+                 .filter(ImageFilter.GaussianBlur(0.5)))
+        grain = Image.new("RGBA", (cw, ch), CLOTH_SHADE + (255,))
+        grain.putalpha(fibre.point(lambda v: int(abs(v - 128) * 0.26)))
+        img.alpha_composite(grain, (int(box[0]), int(box[1])))
 
     return img, ImageDraw.Draw(img), box
 

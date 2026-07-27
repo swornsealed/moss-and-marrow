@@ -207,6 +207,54 @@
       },
       "attempts": 1,
       "sent_at": "2026-07-26T18:39:18.070723-07:00"
+    },
+    {
+      "submission_id": "clarity-row5",
+      "scheduled_for": "2026-07-27T04:02:52.450136+00:00",
+      "status": "sent",
+      "customer_email": "addictedyz450f@gmail.com",
+      "customer_name": "Craig",
+      "order_number": "TEST-WG-CLARITY",
+      "tier": "The Whole Ground",
+      "reading_type": "clarity",
+      "user_message": "CLIENT: Craig\nPOI: Craig\nPOI_DOB: 1985-03-14\nREADING_TYPE: clarity\nTIER: The Whole Ground\nCLIENT_DOB: 1985-03-14\nLAND_DRAWN:\n  [plant] Douglas fir (earth) \u2014 the long ambition; slow height, deep hold\n  [animal] Black-tailed deer (earth) \u2014 quiet passage; the one who moves without disturbing\n  [root] Skunk cabbage (fire) \u2014 the unlovely herald; spring announced by what no one praises\nSEASON: 35 days past Litha (the longest light, the turn begins), 6 days short of Lammas (first harvest, the proving of what was planted)\nSEASON_ELEMENT: earth\nLOUDEST_ELEMENT: earth  (patience, ground, the slow true thing; what holds and what must be built)\nNAME_NUMBER: 11\nREADING_DATE: 2026-07-26\nNOTES: A decision I need to make | Whether to open the second shop this season or hold until the year turns. I keep circling it and setting it down again.\nLUNAR_CONTEXT (accurate astronomy for the reading date, use ONLY this for any moon or lunar-date reference; never invent a phase, moon sign, or date):\n  On the reading date the Moon is a Waxing Gibbous in Sagittarius.\n  Next New Moon: 13 August 2026 (Moon in Leo).\n  Next Full Moon: 28 August 2026 (Moon in Pisces).",
+      "draw_block": "LAND_DRAWN:\n  [plant] Douglas fir (earth) \u2014 the long ambition; slow height, deep hold\n  [animal] Black-tailed deer (earth) \u2014 quiet passage; the one who moves without disturbing\n  [root] Skunk cabbage (fire) \u2014 the unlovely herald; spring announced by what no one praises\nSEASON: 35 days past Litha (the longest light, the turn begins), 6 days short of Lammas (first harvest, the proving of what was planted)\nSEASON_ELEMENT: earth\nLOUDEST_ELEMENT: earth  (patience, ground, the slow true thing; what holds and what must be built)\nNAME_NUMBER: 11\nREADING_DATE: 2026-07-26",
+      "test": true,
+      "turn_number": null,
+      "intake_fields": null,
+      "draw_result": {
+        "season_line": "35 days past Litha (the longest light, the turn begins), 6 days short of Lammas (first harvest, the proving of what was planted)",
+        "prev_sabbat": "Litha",
+        "birth_md": [
+          3,
+          14
+        ],
+        "element": "earth",
+        "signs": [
+          {
+            "kind": "plant",
+            "name": "Douglas fir",
+            "element": "earth",
+            "note": "the long ambition; slow height, deep hold"
+          },
+          {
+            "kind": "animal",
+            "name": "Black-tailed deer",
+            "element": "earth",
+            "note": "quiet passage; the one who moves without disturbing"
+          },
+          {
+            "kind": "root",
+            "name": "Skunk cabbage",
+            "element": "fire",
+            "note": "the unlovely herald; spring announced by what no one praises"
+          }
+        ],
+        "name_number": 11
+      },
+      "attempts": 1,
+      "sent_at": "2026-07-26T21:02:54.581116-07:00",
+      "audio_script": "Hey Craig... [short pause] it's Willow. I just came in from your reading, and I... I wanted to talk to you before I sit down to write it all out properly. My coat is still damp. [short pause] I was under the firs for a while this morning and it is one of those days where the light is already doing something different even though it still feels like summer. You know what I mean. It feels warm, but the lean is there.\n\n[pause] The thing I keep coming back to, walking home just now, is not the big signs. It is the thing underneath them. [exhales] You have got skunk cabbage at the root of this question, Craig, and that is the plant that comes up before anyone thinks spring is possible. Before conditions are right. It makes its own warmth. [warmly] And I kept thinking, the whole walk back, that there is something you already know about this decision. Something you have not let yourself say out loud yet. Something underneath all the careful circling.\n\n[long pause] That circling is not a problem, by the way. The deer knows how to do that. You know how to read the ground before you move across it. That is not timidity, that is... that is how you have built what you have built. But I think the circling has gone past the point where it is finding new information.\n\n[short pause] [softly] The fir is there too. The long ambition, the deep root. I am not going to give you the whole reading right now, that is what the letter is for, but I want you to have this before you read a word of it. Nothing on your ground today is unkind. [pause] The season is asking you a real question, and you are someone who can answer it. [curious] What it wants from you is honesty about what you already know.\n\n[hesitates] Okay. I am going to sit down and write this up for you now. Take your time with it when it arrives. [short pause] Really. Take your time.\n\nFrom the edge of the woods. Willow."
     }
   ],
   "redeemed_orders": [],

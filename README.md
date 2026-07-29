@@ -5,6 +5,14 @@ Green / white / peach palette. Brand: **Moss & Marrow**. Reader persona: **Willo
 Domain: **mossandmarrowreadings.com** (chosen 2026-07-19; `docs/CNAME` set).
 Shop email: mossandmarrowreadings@gmail.com.
 
+> **Which repo am I in?** This is **Moss & Marrow**. Its sibling,
+> [`sworn-and-sealed`](https://github.com/swornsealed/sworn-and-sealed), is a
+> separate shop with a near-identical layout — same filenames (`process_orders.py`,
+> `requirements.txt`, `state.json`, `docs/`), same 30-minute Actions schedule.
+> With both checked out it is easy to edit the wrong one. Moss & Marrow is the
+> nature shop (Willow, land and runes); Sworn & Sealed is the tarot shop
+> (Isadora, five tiers, natal charts).
+
 ## Structure
 - `docs/index.html` — the whole site (CSS + HTML + JS, no build step, only external request is Google Fonts).
 - `docs/CNAME`, `docs/robots.txt`, `docs/sitemap.xml` — served by GitHub Pages.
@@ -19,8 +27,11 @@ Shop email: mossandmarrowreadings@gmail.com.
   record is, how the draw was arrived at, and what merkstave or a root sign
   means. Tier-aware, one per family. Run `python guide_image.py` for samples.
 - `moss-marrow-system-prompt.txt` — system prompt for the reading generation.
-- `.github/workflows/process-orders.yml` — the 30-minute Actions schedule (copy also at repo root;
-  disabled on GitHub until secrets are configured).
+- `.github/workflows/process-orders.yml` — the 30-minute Actions schedule, and the
+  only workflow file in the repo. A duplicate copy used to sit at the repo root; it
+  never ran, because GitHub only executes `.github/workflows/`, so it was removed
+  rather than left looking authoritative. Disabled on GitHub until secrets are
+  configured.
 
 ## Before launch (remaining TODOs)
 - Point the two Etsy links (final CTA + footer) at the live shop. Search `TEMPLATE:` comments in the HTML.
